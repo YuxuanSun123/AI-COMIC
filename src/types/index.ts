@@ -4,3 +4,6 @@ export interface Option {
   icon?: React.ComponentType<{ className?: string }>;
   withCount?: boolean;
 }
+
+// 导出所有类型定义
+export * from './types';

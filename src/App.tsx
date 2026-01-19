@@ -1,37 +1,38 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import IntersectObserver from '@/components/common/IntersectObserver';
-
+import MainLayout from '@/components/layouts/MainLayout';
 import routes from './routes';
-
-// import { AuthProvider } from '@/contexts/AuthContext';
-// import { RouteGuard } from '@/components/common/RouteGuard';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/toaster';
+import { initMockData } from '@/lib/mockData';
 
-const App: React.FC = () => {
+const App = () => {
+  // 初始化模拟数据
+  useEffect(() => {
+    initMockData();
+  }, []);
+
   return (
     <Router>
-      {/*<AuthProvider>*/}
-      {/*<RouteGuard>*/}
-      <IntersectObserver />
-      <div className="flex flex-col min-h-screen">
-        {/*<Header />*/}
-        <main className="flex-grow">
-          <Routes>
-          {routes.map((route, index) => (
-            <Route
-              key={index}
-              path={route.path}
-              element={route.element}
-            />
-          ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-      <Toaster />
-      {/*</RouteGuard>*/}
-      {/*</AuthProvider>*/}
+      <LanguageProvider>
+        <AuthProvider>
+          <IntersectObserver />
+          <MainLayout>
+            <Routes>
+              {routes.map((route, index) => (
+                <Route
+                  key={index}
+                  path={route.path}
+                  element={route.element}
+                />
+              ))}
+            </Routes>
+          </MainLayout>
+          <Toaster />
+        </AuthProvider>
+      </LanguageProvider>
     </Router>
   );
 };
