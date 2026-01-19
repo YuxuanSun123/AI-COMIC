@@ -3,8 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* AI漫剧工作坊 - 霓虹渐变主题设计系统
- * 深紫/黑色背景 + 霓虹渐变高光（紫、蓝、粉）
+/* AI漫剧工作坊 - 优化配色方案
+ * 浅色背景 + 霓虹渐变强调色（紫、蓝、粉）
+ * 减少视觉疲劳，提高可读性
  * 所有颜色使用 HSL 格式
  */
 
@@ -12,71 +13,71 @@
   :root {
     --radius: 0.75rem;
     
-    /* 霓虹紫色主题 */
-    --background: 270 50% 5%;
-    --foreground: 280 20% 95%;
+    /* 浅色背景主题 - 舒适的浅灰白色 */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 15%;
     
-    /* 卡片 - 深紫色带透明感 */
-    --card: 270 40% 10%;
-    --card-foreground: 280 20% 95%;
+    /* 卡片 - 纯白色带轻微阴影 */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 15%;
     
     /* 弹出层 */
-    --popover: 270 45% 8%;
-    --popover-foreground: 280 20% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 15%;
     
-    /* 主色 - 霓虹紫 */
-    --primary: 270 80% 60%;
-    --primary-foreground: 280 20% 98%;
+    /* 主色 - 优雅的紫色 */
+    --primary: 270 70% 55%;
+    --primary-foreground: 0 0% 100%;
     
-    /* 次要色 - 霓虹蓝 */
-    --secondary: 220 85% 55%;
-    --secondary-foreground: 220 20% 98%;
+    /* 次要色 - 柔和的蓝色 */
+    --secondary: 220 75% 60%;
+    --secondary-foreground: 0 0% 100%;
     
-    /* 强调色 - 霓虹粉 */
-    --accent: 320 85% 65%;
-    --accent-foreground: 320 20% 98%;
+    /* 强调色 - 活力粉色 */
+    --accent: 320 75% 65%;
+    --accent-foreground: 0 0% 100%;
     
-    /* 柔和色 */
-    --muted: 270 30% 15%;
-    --muted-foreground: 270 15% 65%;
+    /* 柔和色 - 浅灰背景 */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 5% 45%;
     
     /* 边框和输入 */
-    --border: 270 40% 20%;
-    --input: 270 40% 18%;
-    --ring: 270 80% 60%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 270 70% 55%;
     
     /* 危险色 */
-    --destructive: 0 85% 60%;
-    --destructive-foreground: 0 20% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
     
-    /* 图表色 - 霓虹色系 */
-    --chart-1: 270 80% 60%;
-    --chart-2: 220 85% 55%;
-    --chart-3: 320 85% 65%;
-    --chart-4: 180 75% 50%;
-    --chart-5: 40 90% 60%;
+    /* 图表色 - 柔和色系 */
+    --chart-1: 270 70% 55%;
+    --chart-2: 220 75% 60%;
+    --chart-3: 320 75% 65%;
+    --chart-4: 180 65% 50%;
+    --chart-5: 40 85% 60%;
     
-    /* 侧边栏 */
-    --sidebar-background: 270 45% 8%;
-    --sidebar-foreground: 280 20% 95%;
-    --sidebar-primary: 270 80% 60%;
-    --sidebar-primary-foreground: 280 20% 98%;
-    --sidebar-accent: 270 35% 15%;
-    --sidebar-accent-foreground: 280 20% 95%;
-    --sidebar-border: 270 40% 18%;
-    --sidebar-ring: 270 80% 60%;
+    /* 侧边栏 - 浅色 */
+    --sidebar-background: 240 5% 97%;
+    --sidebar-foreground: 240 10% 15%;
+    --sidebar-primary: 270 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 94%;
+    --sidebar-accent-foreground: 240 10% 15%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 270 70% 55%;
     
-    /* 渐变定义 */
-    --gradient-primary: linear-gradient(135deg, hsl(270 80% 60%), hsl(220 85% 55%), hsl(320 85% 65%));
-    --gradient-card: linear-gradient(135deg, hsl(270 40% 10% / 0.8), hsl(270 35% 12% / 0.6));
-    --gradient-background: radial-gradient(ellipse at top, hsl(270 50% 10%), hsl(270 50% 5%));
+    /* 渐变定义 - 柔和渐变 */
+    --gradient-primary: linear-gradient(135deg, hsl(270 70% 55%), hsl(220 75% 60%), hsl(320 75% 65%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(240 5% 98%));
+    --gradient-background: linear-gradient(to bottom, hsl(240 5% 99%), hsl(0 0% 98%));
     
-    /* 阴影效果 - 霓虹光晕 */
-    --shadow-card: 0 4px 20px hsl(270 80% 60% / 0.15), 0 0 40px hsl(270 80% 60% / 0.1);
-    --shadow-hover: 0 8px 30px hsl(270 80% 60% / 0.25), 0 0 60px hsl(270 80% 60% / 0.15);
-    --shadow-neon-purple: 0 0 20px hsl(270 80% 60% / 0.5);
-    --shadow-neon-blue: 0 0 20px hsl(220 85% 55% / 0.5);
-    --shadow-neon-pink: 0 0 20px hsl(320 85% 65% / 0.5);
+    /* 阴影效果 - 柔和阴影 */
+    --shadow-card: 0 2px 8px hsl(240 10% 15% / 0.08), 0 1px 3px hsl(240 10% 15% / 0.06);
+    --shadow-hover: 0 4px 16px hsl(240 10% 15% / 0.12), 0 2px 6px hsl(240 10% 15% / 0.08);
+    --shadow-neon-purple: 0 0 12px hsl(270 70% 55% / 0.3);
+    --shadow-neon-blue: 0 0 12px hsl(220 75% 60% / 0.3);
+    --shadow-neon-pink: 0 0 12px hsl(320 75% 65% / 0.3);
   }
 
   .dark {
@@ -124,20 +125,45 @@
   body {
     @apply bg-background text-foreground;
     background: var(--gradient-background);
+    /* 优化字体渲染 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* 优化滚动体验 */
+    scroll-behavior: smooth;
+  }
+  
+  /* 优化滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
 @layer utilities {
-  /* 霓虹渐变文字效果 */
+  /* 优化渐变文字效果 - 适配浅色主题 */
   .gradient-text {
-    background: linear-gradient(135deg, hsl(270 80% 60%), hsl(220 85% 55%), hsl(320 85% 65%));
+    background: linear-gradient(135deg, hsl(270 70% 55%), hsl(220 75% 60%), hsl(320 75% 65%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
   
-  /* 霓虹光晕效果 */
+  /* 柔和光晕效果 */
   .neon-glow-purple {
     box-shadow: var(--shadow-neon-purple);
   }
@@ -150,13 +176,18 @@
     box-shadow: var(--shadow-neon-pink);
   }
   
-  /* 卡片悬停效果 */
+  /* 卡片悬停效果 - 优化 */
   .card-hover {
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .card-hover:hover {
-    transform: translateY(-4px);
     box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+  
+  /* 移除过度的发光效果 */
+  .glow-effect {
+    box-shadow: var(--shadow-card);
   }
 }
