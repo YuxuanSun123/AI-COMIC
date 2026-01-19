@@ -60,7 +60,8 @@ export default function News() {
       content: formData.content,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       author_id: currentUser.id,
-      created_ms: Date.now()
+      created_ms: Date.now(),
+      updated_ms: Date.now()
     };
 
     const result = tableApi.post<NewsType>('news', newNews);

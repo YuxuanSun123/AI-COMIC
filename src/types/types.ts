@@ -8,6 +8,7 @@ export interface User {
   password_hash: string; // 注意：仅演示用途，不安全
   membership_tier: 'free' | 'pro' | 'studio';
   created_ms: number;
+  updated_ms: number;
 }
 
 // 作品类型
@@ -101,6 +102,7 @@ export interface News {
   tags: string[];
   author_id: string;
   created_ms: number;
+  updated_ms: number;
 }
 
 // 友情链接类型
@@ -112,6 +114,7 @@ export interface Link {
   tags: string[];
   author_id: string;
   created_ms: number;
+  updated_ms: number;
 }
 
 // 当前用户信息（localStorage存储）

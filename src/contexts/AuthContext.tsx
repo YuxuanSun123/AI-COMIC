@@ -112,7 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nickname,
         password_hash: simpleHash(password), // 注意：仅演示用途，不安全
         membership_tier: 'free',
-        created_ms: Date.now()
+        created_ms: Date.now(),
+        updated_ms: Date.now()
       };
 
       const result = tableApi.post<User>('users', newUser);
