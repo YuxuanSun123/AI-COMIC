@@ -190,4 +190,31 @@
   .glow-effect {
     box-shadow: var(--shadow-card);
   }
+  
+  /* 优化输入框焦点效果 */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+  }
+  
+  /* 优化按钮渐变效果 */
+  .gradient-button {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--accent)));
+    transition: opacity 0.3s ease;
+  }
+  
+  .gradient-button:hover {
+    opacity: 0.9;
+  }
+  
+  /* 优化滑块样式 */
+  [role="slider"] {
+    transition: all 0.2s ease;
+  }
+  
+  [role="slider"]:hover {
+    transform: scale(1.1);
+  }
 }

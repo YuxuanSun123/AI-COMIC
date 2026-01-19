@@ -200,11 +200,11 @@ export default function ScriptGenerator() {
   };
 
   const leftPanel = (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <Label className="text-sm font-medium">{t.selectGenre}</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.selectGenre}</Label>
         <Select value={genre} onValueChange={setGenre}>
-          <SelectTrigger className="w-full mt-2 bg-input border-border">
+          <SelectTrigger className="w-full bg-background border-2 border-border hover:border-primary/50 transition-colors">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-card border-border">
@@ -218,75 +218,90 @@ export default function ScriptGenerator() {
   );
 
   const centerPanel = (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <Label>{t.workTitle}</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.workTitle}</Label>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t.workTitle}
-          className="bg-input border-border"
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
         />
       </div>
       <div>
-        <Label>{t.storyPrompt}</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.storyPrompt}</Label>
         <Textarea
           value={storyPrompt}
           onChange={(e) => setStoryPrompt(e.target.value)}
           placeholder="描述您的故事创意..."
-          rows={3}
-          className="bg-input border-border"
+          rows={4}
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
         />
       </div>
       <div>
-        <Label>{t.characters} (逗号分隔)</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.characters} <span className="text-muted-foreground font-normal">(逗号分隔)</span></Label>
         <Input
           value={characters}
           onChange={(e) => setCharacters(e.target.value)}
           placeholder="角色1, 角色2"
-          className="bg-input border-border"
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
         />
       </div>
       <div>
-        <Label>{t.worldview}</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.worldview}</Label>
         <Textarea
           value={worldview}
           onChange={(e) => setWorldview(e.target.value)}
           placeholder="描述故事的世界观设定..."
-          rows={2}
-          className="bg-input border-border"
+          rows={3}
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
         />
       </div>
-      <Button onClick={generateScript} disabled={loading} className="w-full neon-glow-purple">
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {t.loading}
-          </>
-        ) : (
-          t.generateScript
-        )}
-      </Button>
-      <div>
-        <Label>{t.scriptInput}</Label>
+      
+      <div className="pt-2">
+        <Button 
+          onClick={generateScript} 
+          disabled={loading} 
+          className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary via-secondary to-accent hover:opacity-90 transition-opacity shadow-lg"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              {t.loading}
+            </>
+          ) : (
+            t.generateScript
+          )}
+        </Button>
+      </div>
+      
+      <div className="pt-4">
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.scriptInput}</Label>
         <Textarea
           value={scriptContent}
           onChange={(e) => setScriptContent(e.target.value)}
           placeholder="生成的剧本内容将显示在这里..."
-          rows={15}
-          className="bg-input border-border font-mono text-sm"
+          rows={16}
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors font-mono text-sm resize-none"
         />
       </div>
-      <Button onClick={saveScript} className="w-full">
+      
+      <Button 
+        onClick={saveScript} 
+        className="w-full h-11 font-semibold bg-primary hover:bg-primary/90 transition-colors"
+      >
         {t.save}
       </Button>
     </div>
   );
 
   const rightPanel = (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <Label className="text-sm">{t.length}: {length[0]}%</Label>
+        <Label className="text-sm font-semibold text-foreground mb-4 block flex items-center justify-between">
+          <span>{t.length}</span>
+          <span className="text-primary font-bold">{length[0]}%</span>
+        </Label>
         <Slider
           value={length}
           onValueChange={setLength}
@@ -296,7 +311,10 @@ export default function ScriptGenerator() {
         />
       </div>
       <div>
-        <Label className="text-sm">{t.pace}: {pace[0]}%</Label>
+        <Label className="text-sm font-semibold text-foreground mb-4 block flex items-center justify-between">
+          <span>{t.pace}</span>
+          <span className="text-primary font-bold">{pace[0]}%</span>
+        </Label>
         <Slider
           value={pace}
           onValueChange={setPace}
@@ -306,7 +324,10 @@ export default function ScriptGenerator() {
         />
       </div>
       <div>
-        <Label className="text-sm">{t.temperature}: {temperature[0]}%</Label>
+        <Label className="text-sm font-semibold text-foreground mb-4 block flex items-center justify-between">
+          <span>{t.temperature}</span>
+          <span className="text-primary font-bold">{temperature[0]}%</span>
+        </Label>
         <Slider
           value={temperature}
           onValueChange={setTemperature}

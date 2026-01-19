@@ -11,12 +11,12 @@ interface ToolLayoutProps {
 
 export default function ToolLayout({ leftPanel, centerPanel, rightPanel }: ToolLayoutProps) {
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-8">
       {/* 使用 flex 布局，避免多个滚动条 */}
-      <div className="flex flex-col xl:flex-row gap-4 xl:gap-6">
+      <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
         {/* 左侧面板 - 工具导航/类型选择 */}
-        <div className="xl:w-48 flex-shrink-0">
-          <Card className="bg-card border-border p-4 shadow-card">
+        <div className="xl:w-56 flex-shrink-0">
+          <Card className="bg-card border-border p-6 shadow-card">
             {/* 移动端：不滚动，内容自适应 */}
             {/* 桌面端：固定高度，内容自适应 */}
             <div className="xl:max-h-[calc(100vh-12rem)]">
@@ -27,7 +27,7 @@ export default function ToolLayout({ leftPanel, centerPanel, rightPanel }: ToolL
 
         {/* 中间面板 - 编辑/生成区域 */}
         <div className="flex-1 min-w-0">
-          <Card className="bg-card border-border p-6 shadow-card">
+          <Card className="bg-card border-border p-8 shadow-card">
             {/* 使用自然滚动，不限制高度 */}
             <div className="space-y-4">
               {centerPanel}
@@ -36,8 +36,8 @@ export default function ToolLayout({ leftPanel, centerPanel, rightPanel }: ToolL
         </div>
 
         {/* 右侧面板 - 参数设置 */}
-        <div className="xl:w-72 flex-shrink-0">
-          <Card className="bg-card border-border p-4 shadow-card">
+        <div className="xl:w-80 flex-shrink-0">
+          <Card className="bg-card border-border p-6 shadow-card">
             {/* 桌面端：跟随页面滚动 */}
             <div className="xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)]">
               {rightPanel}
