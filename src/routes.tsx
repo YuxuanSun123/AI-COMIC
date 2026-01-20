@@ -12,6 +12,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import type { ReactNode } from 'react';
 
@@ -92,6 +93,11 @@ const routes: RouteConfig[] = [
     name: 'Terms',
     path: '/terms',
     element: <Terms />
+  },
+  {
+    name: 'Admin',
+    path: '/admin',
+    element: <Admin />
   },
   {
     name: 'NotFound',

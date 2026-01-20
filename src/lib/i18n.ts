@@ -22,6 +22,7 @@ export interface I18nTexts {
   contact: string;
   privacy: string;
   terms: string;
+  admin: string;
   
   // 用户相关
   login: string;
@@ -177,6 +178,7 @@ export const i18n: Record<Language, I18nTexts> = {
     contact: '联系我们',
     privacy: '隐私政策',
     terms: '使用条款',
+    admin: '后台管理',
     
     login: '登录',
     register: '注册',
@@ -320,6 +322,7 @@ export const i18n: Record<Language, I18nTexts> = {
     contact: 'Contact Us',
     privacy: 'Privacy Policy',
     terms: 'Terms of Service',
+    admin: 'Admin',
     
     login: 'Login',
     register: 'Register',

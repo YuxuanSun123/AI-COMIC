@@ -44,6 +44,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     { path: '/about', label: t.about }
   ];
 
+  // 添加后台管理入口（仅登录用户可见）
+  if (currentUser) {
+    navItems.push({ path: '/admin', label: t.admin || '后台管理' });
+  }
+
   // 生成面包屑
   const getBreadcrumbs = () => {
     const pathMap: Record<string, string> = {
@@ -59,7 +64,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       '/about': t.about,
       '/contact': t.contact,
       '/privacy': t.privacy,
-      '/terms': t.terms
+      '/terms': t.terms,
+      '/admin': t.admin || '后台管理'
     };
 
     const paths = location.pathname.split('/').filter(Boolean);
