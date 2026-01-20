@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import LoginDialog from '@/components/auth/LoginDialog';
 import RegisterDialog from '@/components/auth/RegisterDialog';
 import { Menu, X } from 'lucide-react';
@@ -26,28 +26,32 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [showRegister, setShowRegister] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // 导航菜单项
-  const navItems = [
-    { path: '/', label: t.studio },
-    { path: '/news', label: t.news },
-    {
-      label: t.tools,
-      children: [
-        { path: '/tools/script', label: t.scriptGenerator },
-        { path: '/tools/storyboard', label: t.storyboardGenerator },
-        { path: '/tools/video', label: t.videoCards },
-        { path: '/tools/edit', label: t.editing }
-      ]
-    },
-    { path: '/links', label: t.links },
-    { path: '/pricing', label: t.pricing },
-    { path: '/about', label: t.about }
-  ];
+  // 导航菜单项 - 使用useMemo动态生成
+  const navItems = useMemo(() => {
+    const items = [
+      { path: '/', label: t.studio },
+      { path: '/news', label: t.news },
+      {
+        label: t.tools,
+        children: [
+          { path: '/tools/script', label: t.scriptGenerator },
+          { path: '/tools/storyboard', label: t.storyboardGenerator },
+          { path: '/tools/video', label: t.videoCards },
+          { path: '/tools/edit', label: t.editing }
+        ]
+      },
+      { path: '/links', label: t.links },
+      { path: '/pricing', label: t.pricing },
+      { path: '/about', label: t.about }
+    ];
 
-  // 添加后台管理入口（仅登录用户可见）
-  if (currentUser) {
-    navItems.push({ path: '/admin', label: t.admin || '后台管理' });
-  }
+    // 添加后台管理入口（仅登录用户可见）
+    if (currentUser) {
+      items.push({ path: '/admin', label: t.admin || '后台管理' });
+    }
+
+    return items;
+  }, [currentUser, t]);
 
   // 生成面包屑
   const getBreadcrumbs = () => {

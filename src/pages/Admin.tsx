@@ -46,19 +46,10 @@ export default function Admin() {
   useEffect(() => {
     document.title = `${t.admin || '后台管理'} - ${t.appTitle}`;
 
-    // 检查登录状态
-    if (!currentUser) {
-      toast({
-        title: t.pleaseLogin,
-        variant: 'destructive'
-      });
-      navigate('/');
-      return;
-    }
-
     // 加载配置
     loadConfig();
-  }, [t, currentUser, navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   const loadConfig = () => {
     // 从 localStorage 加载配置
@@ -112,6 +103,34 @@ export default function Admin() {
       });
     }, 1000);
   };
+
+  // 未登录时显示提示
+  if (!currentUser) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-center">需要登录</CardTitle>
+            <CardDescription className="text-center">
+              请先登录以访问后台管理功能
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <Key className="h-16 w-16 text-muted-foreground opacity-50" />
+            <p className="text-sm text-muted-foreground text-center">
+              后台管理功能仅对登录用户开放
+            </p>
+            <Button
+              onClick={() => navigate('/')}
+              className="w-full"
+            >
+              返回首页
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
