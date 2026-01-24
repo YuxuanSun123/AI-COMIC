@@ -132,42 +132,46 @@ export default function StoryboardGenerator() {
   );
 
   const centerPanel = (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <Label>{t.workTitle}</Label>
+        <Label className="font-semibold text-foreground mb-3 block">{t.workTitle}</Label>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="bg-input border-border"
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
         />
       </div>
       <div>
-        <Label>{t.scriptInput}</Label>
+        <Label className="font-semibold text-foreground mb-3 block">{t.scriptInput}</Label>
         <Textarea
           value={scriptInput}
           onChange={(e) => setScriptInput(e.target.value)}
-          rows={4}
-          className="bg-input border-border"
+          rows={6}
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
         />
       </div>
-      <Button onClick={generateStoryboard} disabled={loading} className="w-full neon-glow-purple">
+      <Button 
+        onClick={generateStoryboard} 
+        disabled={loading} 
+        className="w-full h-12 bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+      >
         {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : t.generateStoryboard}
       </Button>
 
-      <div className="space-y-4 mt-6">
+      <div className="space-y-6 mt-8">
         <div className="flex justify-between items-center">
-          <Label>分镜列表</Label>
-          <Button onClick={addShot} size="sm" variant="outline" className="border-border">
+          <Label className="font-semibold text-foreground text-lg">分镜列表</Label>
+          <Button onClick={addShot} size="sm" variant="outline" className="border-2 border-border hover:border-primary/50">
             <Plus className="h-4 w-4 mr-1" />
             {t.addItem}
           </Button>
         </div>
 
         {shots.map((shot, index) => (
-          <Card key={index} className="p-4 bg-muted border-border">
-            <div className="space-y-3">
+          <Card key={index} className="p-6 bg-muted/50 border-2 border-border">
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <Label>镜头 {index + 1}</Label>
+                <Label className="font-semibold text-foreground">镜头 {index + 1}</Label>
                 <div className="flex space-x-1">
                   <Button size="sm" variant="ghost" onClick={() => moveShot(index, 'up')} disabled={index === 0}>
                     <MoveUp className="h-4 w-4" />
@@ -184,40 +188,46 @@ export default function StoryboardGenerator() {
                 placeholder={t.imageDescription}
                 value={shot.image_description}
                 onChange={(e) => updateShot(index, 'image_description', e.target.value)}
-                className="bg-input border-border"
+                className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
               />
               <Input
                 placeholder={t.action}
                 value={shot.action}
                 onChange={(e) => updateShot(index, 'action', e.target.value)}
-                className="bg-input border-border"
+                className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
               />
               <Input
                 placeholder={t.cameraPosition}
                 value={shot.camera_position}
                 onChange={(e) => updateShot(index, 'camera_position', e.target.value)}
-                className="bg-input border-border"
+                className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
               />
               <Input
                 placeholder={t.dialogue}
                 value={shot.dialogue}
                 onChange={(e) => updateShot(index, 'dialogue', e.target.value)}
-                className="bg-input border-border"
+                className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
               />
             </div>
           </Card>
         ))}
       </div>
 
-      <Button onClick={saveStoryboard} className="w-full">
+      <Button 
+        onClick={saveStoryboard} 
+        className="w-full h-12 bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+      >
         {t.save}
       </Button>
     </div>
   );
 
   const rightPanel = (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">分镜总数: {shots.length}</p>
+    <div className="space-y-6">
+      <div className="p-4 bg-muted/50 rounded-lg border-2 border-border">
+        <Label className="font-semibold text-foreground mb-2 block">统计信息</Label>
+        <p className="text-sm text-muted-foreground">分镜总数: <span className="text-primary font-semibold">{shots.length}</span></p>
+      </div>
     </div>
   );
 

@@ -88,25 +88,29 @@ export default function Editing() {
   const leftPanel = <div className="text-sm text-muted-foreground">{t.editing}</div>;
 
   const centerPanel = (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <Label>{t.workTitle}</Label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-input border-border" />
+        <Label className="font-semibold text-foreground mb-3 block">{t.workTitle}</Label>
+        <Input 
+          value={title} 
+          onChange={(e) => setTitle(e.target.value)} 
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11" 
+        />
       </div>
 
       <div className="flex justify-between items-center">
-        <Label>剪辑清单</Label>
-        <Button onClick={addClip} size="sm" variant="outline" className="border-border">
+        <Label className="font-semibold text-foreground text-lg">剪辑清单</Label>
+        <Button onClick={addClip} size="sm" variant="outline" className="border-2 border-border hover:border-primary/50">
           <Plus className="h-4 w-4 mr-1" />
           {t.addItem}
         </Button>
       </div>
 
       {clips.map((clip, index) => (
-        <Card key={clip.id} className="p-4 bg-muted border-border">
-          <div className="space-y-3">
+        <Card key={clip.id} className="p-6 bg-muted/50 border-2 border-border">
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <Label>片段 {index + 1}</Label>
+              <Label className="font-semibold text-foreground">片段 {index + 1}</Label>
               <Button size="sm" variant="ghost" onClick={() => deleteClip(clip.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -115,47 +119,59 @@ export default function Editing() {
               placeholder={t.shotNumber}
               value={clip.shot_number}
               onChange={(e) => updateClip(clip.id, 'shot_number', e.target.value)}
-              className="bg-input border-border"
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
             />
             <Input
               placeholder={t.materialRequirement}
               value={clip.material_requirement}
               onChange={(e) => updateClip(clip.id, 'material_requirement', e.target.value)}
-              className="bg-input border-border"
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
             />
             <Input
               placeholder={t.audioEffect}
               value={clip.audio_effect}
               onChange={(e) => updateClip(clip.id, 'audio_effect', e.target.value)}
-              className="bg-input border-border"
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
             />
             <Input
               placeholder={t.transition}
               value={clip.transition}
               onChange={(e) => updateClip(clip.id, 'transition', e.target.value)}
-              className="bg-input border-border"
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
             />
             <Input
               placeholder={t.duration}
               value={clip.duration}
               onChange={(e) => updateClip(clip.id, 'duration', e.target.value)}
-              className="bg-input border-border"
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
             />
             <Input
               placeholder={t.notes}
               value={clip.notes}
               onChange={(e) => updateClip(clip.id, 'notes', e.target.value)}
-              className="bg-input border-border"
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
             />
           </div>
         </Card>
       ))}
 
-      <Button onClick={saveClips} className="w-full">{t.save}</Button>
+      <Button 
+        onClick={saveClips} 
+        className="w-full h-12 bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+      >
+        {t.save}
+      </Button>
     </div>
   );
 
-  const rightPanel = <div className="text-sm text-muted-foreground">片段总数: {clips.length}</div>;
+  const rightPanel = (
+    <div className="space-y-6">
+      <div className="p-4 bg-muted/50 rounded-lg border-2 border-border">
+        <Label className="font-semibold text-foreground mb-2 block">统计信息</Label>
+        <p className="text-sm text-muted-foreground">片段总数: <span className="text-primary font-semibold">{clips.length}</span></p>
+      </div>
+    </div>
+  );
 
   return <ToolLayout leftPanel={leftPanel} centerPanel={centerPanel} rightPanel={rightPanel} />;
 }
