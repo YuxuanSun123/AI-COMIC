@@ -102,6 +102,13 @@
 - [ ] 邮箱唯一性验证增强
 - [ ] 密码规则验证增强
 
+## v2.8.1 导航菜单修复（2026-01-24）
+- [x] 修复导航菜单中后台管理链接无法点击的问题
+- [x] 添加NavItem类型定义（path为可选属性）
+- [x] 修复NavContent组件条件渲染逻辑
+- [x] 修复DropdownMenu的key使用
+- [x] 添加null检查防止无效Link渲染
+
 ## v2.8.0 剪辑合成完整联动工作流（2026-01-19）
 - [x] 更新aiClient.ts，实现generateEditPlan方法
 - [x] 定义GenerateEditPlanPayload和EditPlanGenerationResult类型
@@ -290,4 +297,5 @@
 ✅ v2.6.0 分镜生成器完整联动工作流完成，支持从剧本生成分镜、编辑排序、工具联动！
 ✅ v2.7.0 镜头卡生成器完整联动工作流完成，支持从分镜生成镜头卡、Prompt结构、工具联动！
 ✅ v2.8.0 剪辑合成完整联动工作流完成，支持从镜头卡生成剪辑清单、时长分配、转场规则、导出功能！
+✅ v2.8.1 导航菜单修复完成，后台管理链接现在可以正常访问！
 ✅ 完整数据流水线：Script → Storyboard → Video Cards → Edit Plan，端到端闭环！

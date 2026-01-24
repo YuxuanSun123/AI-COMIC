@@ -26,9 +26,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [showRegister, setShowRegister] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // 导航菜单项类型定义
+  interface NavItem {
+    path?: string;
+    label: string;
+    children?: Array<{ path: string; label: string }>;
+  }
+
   // 导航菜单项 - 使用useMemo动态生成
-  const navItems = useMemo(() => {
-    const items = [
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [
       { path: '/', label: t.studio },
       { path: '/news', label: t.news },
       {
@@ -99,7 +106,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <>
       {navItems.map((item, index) =>
         item.children ? (
-          <DropdownMenu key={index}>
+          <DropdownMenu key={item.label || index}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="text-foreground hover:text-primary">
                 {item.label}
@@ -115,7 +122,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : (
+        ) : item.path ? (
           <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)}>
             <Button
               variant="ghost"
@@ -126,7 +133,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               {item.label}
             </Button>
           </Link>
-        )
+        ) : null
       )}
     </>
   );
