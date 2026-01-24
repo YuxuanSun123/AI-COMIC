@@ -18,7 +18,7 @@ export interface Work {
   id: string;
   type: WorkType;
   title: string;
-  content: ScriptContent | EnhancedScriptContent | StoryboardContent | EnhancedStoryboardContent | VideoCardsContent | EditPlanContent;
+  content: ScriptContent | EnhancedScriptContent | StoryboardContent | EnhancedStoryboardContent | VideoCardsContent | EnhancedVideoCardsContent | EditPlanContent;
   author_id: string;
   lang: 'zh' | 'en';
   created_ms: number;
@@ -140,7 +140,46 @@ export interface Shot {
   dialogue: string;
 }
 
-// 镜头卡内容结构
+// 镜头卡内容结构（新版 - 用于AI生成和工具联动）
+export interface EnhancedVideoCardsContent {
+  lang: 'zh' | 'en'; // 语言
+  genre: string; // 题材
+  source: {
+    storyboard_id: string | null; // 来源分镜ID
+    storyboard_title: string; // 来源分镜标题
+    shot_count: number; // 来源镜头数
+  };
+  params: VideoCardsParams; // 生成参数
+  cards: EnhancedVideoCard[]; // 镜头卡列表
+  updated_from: {
+    source_video_cards_id: string | null; // 来源镜头卡ID
+  };
+}
+
+// 镜头卡生成参数
+export interface VideoCardsParams {
+  render_style: string; // 渲染风格
+  character_consistency: 'low' | 'mid' | 'high'; // 角色一致性
+  detail_level: 'low' | 'mid' | 'high'; // 细节级别
+  camera_emphasis: 'weak' | 'mid' | 'strong'; // 镜头强调
+  temperature: number; // 温度（0-1）
+}
+
+// 增强镜头卡结构（用于AI生成和剪辑合成联动）
+export interface EnhancedVideoCard {
+  card_no: number; // 镜头卡编号
+  shot_ref: number; // 对应shot_no
+  visual_desc: string; // 画面描述（偏视觉）
+  character_action: string; // 人物与动作
+  lighting_mood: string; // 光影/氛围/情绪
+  camera_desc: string; // 机位与运动
+  dialogue_voiceover: string; // 对白/旁白
+  prompt: string; // AI Prompt（自动拼接生成）
+  negative_prompt: string; // 负面Prompt
+  notes: string; // 备注
+}
+
+// 镜头卡内容结构（旧版 - 保持兼容）
 export interface VideoCardsContent {
   cards: VideoCard[];
 }

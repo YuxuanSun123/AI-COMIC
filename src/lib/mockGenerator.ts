@@ -566,3 +566,250 @@ function generateDialogue(scene: any, shotIndex: number, isZh: boolean): string 
     return shotIndex % 3 === 0 ? '(No dialogue)' : 'Character dialogue';
   }
 }
+
+/**
+ * Mock生成镜头卡
+ * @param payload 生成参数
+ * @returns 镜头卡生成结果
+ */
+export async function mockGenerateVideoCards(
+  payload: any
+): Promise<any> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  const { lang, genre, source, params } = payload;
+  const { render_style, character_consistency, detail_level, camera_emphasis } = params;
+  const isZh = lang === 'zh';
+
+  const cards: Array<{
+    card_no: number;
+    shot_ref: number;
+    visual_desc: string;
+    character_action: string;
+    lighting_mood: string;
+    camera_desc: string;
+    dialogue_voiceover: string;
+    prompt: string;
+    negative_prompt: string;
+    notes: string;
+  }> = [];
+
+  // 从shots生成cards（一一对应）
+  if (source.shots && source.shots.length > 0) {
+    for (let i = 0; i < source.shots.length; i++) {
+      const shot = source.shots[i];
+      
+      // 拆解shot的信息到card的各个字段
+      const visual_desc = extractVisualDesc(shot.frame, isZh);
+      const character_action = extractCharacterAction(shot.action, isZh);
+      const lighting_mood = generateLightingMood(genre, i, isZh);
+      const camera_desc = shot.camera || (isZh ? '中景' : 'Medium shot');
+      const dialogue_voiceover = shot.dialogue || (isZh ? '（无对白）' : '(No dialogue)');
+
+      // 生成prompt
+      const prompt = buildPrompt({
+        render_style,
+        visual_desc,
+        character_action,
+        lighting_mood,
+        camera_desc,
+        genre,
+        character_consistency,
+        detail_level,
+        camera_emphasis,
+        isZh
+      });
+
+      cards.push({
+        card_no: i + 1,
+        shot_ref: shot.shot_no,
+        visual_desc,
+        character_action,
+        lighting_mood,
+        camera_desc,
+        dialogue_voiceover,
+        prompt,
+        negative_prompt: '',
+        notes: ''
+      });
+    }
+  }
+
+  return { cards };
+}
+
+/**
+ * 提取画面描述
+ */
+function extractVisualDesc(frame: string, isZh: boolean): string {
+  if (frame && frame.trim()) {
+    return frame;
+  }
+  return isZh ? '场景画面描述' : 'Scene visual description';
+}
+
+/**
+ * 提取角色动作
+ */
+function extractCharacterAction(action: string, isZh: boolean): string {
+  if (action && action.trim()) {
+    return action;
+  }
+  return isZh ? '角色动作描述' : 'Character action description';
+}
+
+/**
+ * 生成光影氛围
+ */
+function generateLightingMood(genre: string, index: number, isZh: boolean): string {
+  if (isZh) {
+    const moodMap: Record<string, string[]> = {
+      romance: ['柔和暖光', '温馨氛围', '浪漫光影', '柔焦效果'],
+      scifi: ['冷色调科技感', '强烈对比', '霓虹光效', '未来感光影'],
+      mystery: ['阴影重重', '冷色调', '强对比明暗', '悬疑氛围'],
+      thriller: ['黑暗压抑', '强烈阴影', '冷峻色调', '紧张氛围'],
+      campus: ['明亮清新', '自然光', '青春活力', '温暖色调'],
+      family: ['温馨柔和', '自然光线', '温暖氛围', '舒适感']
+    };
+    const moods = moodMap[genre] || ['自然光线', '平衡氛围'];
+    return moods[index % moods.length];
+  } else {
+    const moodMap: Record<string, string[]> = {
+      romance: ['soft warm lighting', 'cozy atmosphere', 'romantic lighting', 'soft focus'],
+      scifi: ['cold tech lighting', 'strong contrast', 'neon effects', 'futuristic lighting'],
+      mystery: ['heavy shadows', 'cold tones', 'strong contrast', 'mysterious atmosphere'],
+      thriller: ['dark oppressive', 'strong shadows', 'cold tones', 'tense atmosphere'],
+      campus: ['bright fresh', 'natural light', 'youthful energy', 'warm tones'],
+      family: ['warm cozy', 'natural lighting', 'warm atmosphere', 'comfortable feel']
+    };
+    const moods = moodMap[genre] || ['natural lighting', 'balanced atmosphere'];
+    return moods[index % moods.length];
+  }
+}
+
+/**
+ * 构建Prompt（核心逻辑）
+ */
+function buildPrompt(options: {
+  render_style: string;
+  visual_desc: string;
+  character_action: string;
+  lighting_mood: string;
+  camera_desc: string;
+  genre: string;
+  character_consistency: string;
+  detail_level: string;
+  camera_emphasis: string;
+  isZh: boolean;
+}): string {
+  const {
+    render_style,
+    visual_desc,
+    character_action,
+    lighting_mood,
+    camera_desc,
+    genre,
+    character_consistency,
+    detail_level,
+    camera_emphasis,
+    isZh
+  } = options;
+
+  const parts: string[] = [];
+
+  // 1. 渲染风格
+  parts.push(render_style);
+
+  // 2. 画面描述
+  parts.push(visual_desc);
+
+  // 3. 角色动作
+  if (character_action && character_action !== '（无）' && character_action !== '(None)') {
+    parts.push(character_action);
+  }
+
+  // 4. 光影氛围
+  parts.push(lighting_mood);
+
+  // 5. 机位描述（根据camera_emphasis决定是否强调）
+  if (camera_emphasis === 'strong' || camera_emphasis === 'mid') {
+    parts.push(camera_desc);
+  }
+
+  // 6. 情绪氛围（根据题材推断）
+  const emotion = inferEmotion(genre, isZh);
+  if (emotion) {
+    parts.push(emotion);
+  }
+
+  // 7. 通用质量词
+  if (isZh) {
+    parts.push('高质量');
+    parts.push('电影级构图');
+  } else {
+    parts.push('high quality');
+    parts.push('cinematic composition');
+  }
+
+  // 8. 角色一致性提示
+  if (character_consistency === 'high') {
+    if (isZh) {
+      parts.push('角色形象高度一致');
+    } else {
+      parts.push('consistent character design');
+      parts.push('same character appearance');
+    }
+  }
+
+  // 9. 细节级别提示
+  if (detail_level === 'high') {
+    if (isZh) {
+      parts.push('细节丰富');
+      parts.push('精致画面');
+    } else {
+      parts.push('highly detailed');
+      parts.push('intricate details');
+    }
+  } else if (detail_level === 'mid') {
+    if (isZh) {
+      parts.push('适度细节');
+    } else {
+      parts.push('moderate detail');
+    }
+  }
+
+  // 拼接
+  if (isZh) {
+    return parts.join('，');
+  } else {
+    return parts.join(', ');
+  }
+}
+
+/**
+ * 根据题材推断情绪氛围
+ */
+function inferEmotion(genre: string, isZh: boolean): string {
+  if (isZh) {
+    const emotionMap: Record<string, string> = {
+      romance: '浪漫温馨氛围',
+      scifi: '科幻未来感',
+      mystery: '紧张悬疑氛围',
+      thriller: '惊悚紧张氛围',
+      campus: '青春活力氛围',
+      family: '温馨家庭氛围'
+    };
+    return emotionMap[genre] || '平衡氛围';
+  } else {
+    const emotionMap: Record<string, string> = {
+      romance: 'romantic warm atmosphere',
+      scifi: 'sci-fi futuristic feel',
+      mystery: 'tense mysterious atmosphere',
+      thriller: 'thrilling tense atmosphere',
+      campus: 'youthful energetic atmosphere',
+      family: 'warm family atmosphere'
+    };
+    return emotionMap[genre] || 'balanced atmosphere';
+  }
+}

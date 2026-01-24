@@ -102,6 +102,33 @@
 - [ ] 邮箱唯一性验证增强
 - [ ] 密码规则验证增强
 
+## v2.7.0 镜头卡生成器完整联动工作流（2026-01-19）
+- [x] 更新aiClient.ts，实现generateVideoCards方法
+- [x] 定义GenerateVideoCardsPayload和VideoCardsGenerationResult类型
+- [x] 创建mockGenerateVideoCards方法
+- [x] Mock生成器：一条shot → 一条card（数量一致）
+- [x] Mock生成器：拆解shot信息到card各字段
+- [x] Mock生成器：Prompt拼接规则实现
+- [x] Mock生成器：根据params影响结果
+- [x] Mock生成器：支持中英文
+- [x] 固化数据结构（EnhancedVideoCardsContent）
+- [x] 重写镜头卡生成器UI（三栏布局）
+- [x] 左栏：来源分镜下拉选择、分镜信息展示
+- [x] 中栏：作品标题输入+按钮行+镜头卡列表编辑器
+- [x] 中栏：镜头卡编辑（card_no/shot_ref/visual_desc/character_action/lighting_mood/camera_desc/dialogue_voiceover/prompt/negative_prompt/notes）
+- [x] 中栏：支持增删排序（新增/删除/上移/下移/重新编号/重新生成Prompt）
+- [x] 右栏：Prompt生成参数（render_style/character_consistency/detail_level/camera_emphasis/temperature）
+- [x] 生成逻辑：组装payload → 调用aiClient → 落地为标准结构
+- [x] 保存功能：保存、另存为
+- [x] 工具联动：生成剪辑清单按钮（跳转到剪辑合成）
+- [x] 自动载入：URL query或localStorage有source_storyboard_id时自动选中
+- [x] Studio联动：video_cards作品点击标题跳转#/tools/video?open_id=xxx
+- [x] 类型定义：VideoCardsParams、EnhancedVideoCard
+- [x] 统计信息：镜头卡数、来源镜头数
+- [x] Prompt拼接规则：buildPrompt函数实现
+- [x] 情绪氛围推断：inferEmotion函数实现
+- [x] 光影氛围生成：generateLightingMood函数实现
+
 ## v2.6.0 分镜生成器完整联动工作流（2026-01-19）
 - [x] 更新aiClient.ts，实现generateStoryboard方法
 - [x] 定义GenerateStoryboardPayload和StoryboardGenerationResult类型
@@ -233,3 +260,4 @@
 ✅ v2.4.3 布局优化完成，移除无用左侧面板，内容区域更宽敞！
 ✅ v2.5.0 剧本生成器完整工作流完成，支持AI生成、工具联动、数据固化！
 ✅ v2.6.0 分镜生成器完整联动工作流完成，支持从剧本生成分镜、编辑排序、工具联动！
+✅ v2.7.0 镜头卡生成器完整联动工作流完成，支持从分镜生成镜头卡、Prompt结构、工具联动！

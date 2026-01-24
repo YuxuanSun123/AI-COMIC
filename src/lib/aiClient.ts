@@ -116,6 +116,57 @@ export interface StoryboardGenerationResult {
   }>;
 }
 
+// 镜头卡生成payload类型
+export interface GenerateVideoCardsPayload {
+  user: {
+    id: string;
+    nickname: string;
+    membership_tier: string;
+  };
+  lang: string;
+  genre: string;
+  source: {
+    storyboard_id: string | null;
+    shots: Array<{
+      shot_no: number;
+      scene_ref: number;
+      frame: string;
+      action: string;
+      camera: string;
+      dialogue: string;
+      duration_sec: number;
+      notes: string;
+    }>;
+  };
+  params: {
+    render_style: string;
+    character_consistency: 'low' | 'mid' | 'high';
+    detail_level: 'low' | 'mid' | 'high';
+    camera_emphasis: 'weak' | 'mid' | 'strong';
+    temperature: number;
+  };
+  meta: {
+    client: string;
+    version: string;
+  };
+}
+
+// 镜头卡生成结果类型
+export interface VideoCardsGenerationResult {
+  cards: Array<{
+    card_no: number;
+    shot_ref: number;
+    visual_desc: string;
+    character_action: string;
+    lighting_mood: string;
+    camera_desc: string;
+    dialogue_voiceover: string;
+    prompt: string;
+    negative_prompt: string;
+    notes: string;
+  }>;
+}
+
 /**
  * 通用请求方法
  * @param path API路径
@@ -214,19 +265,35 @@ export async function generateStoryboard(
 }
 
 /**
- * 生成镜头卡（预留，暂未实现）
+ * 生成镜头卡
  * @param payload 生成参数
- * @returns 占位响应
+ * @returns 镜头卡生成结果
  */
-export async function generateVideoCards(payload: unknown): Promise<ApiResponse<unknown>> {
-  console.log('generateVideoCards called with:', payload);
-  return {
-    ok: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: '镜头卡生成功能暂未实现'
+export async function generateVideoCards(
+  payload: GenerateVideoCardsPayload
+): Promise<ApiResponse<VideoCardsGenerationResult>> {
+  if (USE_REAL_API) {
+    // 真实API调用
+    return request<VideoCardsGenerationResult>('/generate/video-cards', payload);
+  } else {
+    // 使用mock生成器
+    try {
+      const { mockGenerateVideoCards } = await import('./mockGenerator');
+      const result = await mockGenerateVideoCards(payload);
+      return {
+        ok: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: 'MOCK_ERROR',
+          message: error instanceof Error ? error.message : 'Mock生成失败'
+        }
+      };
     }
-  };
+  }
 }
 
 /**

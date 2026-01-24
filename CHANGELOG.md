@@ -7,6 +7,73 @@
 
 ---
 
+## [2.7.0] - 2026-01-19
+
+### 新增 (Added)
+
+#### 镜头卡生成器完整联动工作流
+- 实现镜头卡生成器（#/tools/video）的完整联动工作流
+- 左栏：来源分镜下拉选择（仅显示type=storyboard），自动选中source_storyboard_id，显示分镜摘要信息（标题/题材/语言/镜头数/来源剧本）
+- 中栏：作品标题输入+按钮行（生成镜头卡/保存/另存为/生成剪辑清单）+镜头卡列表编辑器（每条card包含card_no/shot_ref/visual_desc/character_action/lighting_mood/camera_desc/dialogue_voiceover/prompt/negative_prompt/notes，支持编辑/增删/排序/重新生成Prompt）
+- 右栏：Prompt生成参数（render_style/character_consistency/detail_level/camera_emphasis/temperature）+统计信息（镜头卡数/来源镜头）
+- 镜头卡列表编辑器：与shots一一对应，每条card可单独编辑所有字段，支持新增/删除/上移/下移/重新编号/重新生成Prompt
+- 自动载入：URL query或localStorage有source_storyboard_id时自动选中并载入分镜
+- Studio联动：video_cards作品点击标题跳转#/tools/video?open_id=xxx自动载入
+
+#### AI客户端增强
+- 实现generateVideoCards方法（src/lib/aiClient.ts）
+- 定义GenerateVideoCardsPayload类型（user/lang/genre/source包含storyboard_id/shots、params包含render_style/character_consistency/detail_level/camera_emphasis/temperature、meta）
+- 定义VideoCardsGenerationResult类型（cards[]）
+- USE_REAL_API=false时调用mockGenerateVideoCards
+- API约定：POST /api/generate/video-cards，返回{ok, data:{cards}}
+
+#### Mock生成器增强
+- 实现mockGenerateVideoCards方法（src/lib/mockGenerator.ts，250行）
+- 一条shot → 一条card（数量一致）
+- 拆解shot信息到card各字段：visual_desc（从frame提取）、character_action（从action提取）、lighting_mood（根据genre生成）、camera_desc（从camera提取）、dialogue_voiceover（从dialogue提取）
+- Prompt拼接规则：[render_style], [visual_desc], [character_action], [lighting_mood], [camera_desc], [emotion/atmosphere], high quality, cinematic composition, (character consistency hint), (detail level hint)
+- 根据params影响结果：render_style决定整体风格词、character_consistency=high加入"角色形象高度一致/consistent character design"、detail_level=high加入"细节丰富/highly detailed"、camera_emphasis=strong/mid时包含camera_desc
+- 支持中英文：lang=en时所有prompt为英文，拼接用逗号
+- negative_prompt默认空字符串
+
+#### 固化数据结构（用于工具联动）
+- 定义EnhancedVideoCardsContent类型（works.content for type=video_cards）
+- 包含：lang、genre、source（storyboard_id/storyboard_title/shot_count）、params、cards[]、updated_from
+- source.storyboard_id：若来自分镜则必填
+- cards[]：剪辑合成模块的直接输入
+- prompt：可直接丢给AI生图/生视频模型的完整文本
+- 定义VideoCardsParams类型：render_style、character_consistency、detail_level、camera_emphasis、temperature
+- 定义EnhancedVideoCard类型：card_no、shot_ref、visual_desc、character_action、lighting_mood、camera_desc、dialogue_voiceover、prompt、negative_prompt、notes
+
+#### Prompt拼接规则实现
+- buildPrompt函数：按顺序拼接[render_style], [visual_desc], [character_action], [lighting_mood], [camera_desc], [emotion/atmosphere], high quality, cinematic composition, (character consistency hint), (detail level hint)
+- inferEmotion函数：根据题材推断情绪氛围（romance浪漫温馨/scifi科幻未来感/mystery紧张悬疑/thriller惊悚紧张/campus青春活力/family温馨家庭）
+- generateLightingMood函数：根据题材生成光影氛围（romance柔和暖光/scifi冷色调科技感/mystery阴影重重/thriller黑暗压抑/campus明亮清新/family温馨柔和）
+- 中英文模式：isZh=true用逗号拼接中文词，isZh=false用逗号拼接英文词
+
+#### 工具联动入口
+- "生成剪辑清单"按钮：跳转到#/tools/edit
+- 使用localStorage传递source_video_cards_id（last_source_video_cards_id）
+- 剪辑合成可自动选中该镜头卡作为输入来源
+
+### 优化 (Improved)
+
+#### 类型定义增强
+- Work类型支持EnhancedVideoCardsContent
+- 添加VideoCardsParams类型
+- 添加EnhancedVideoCard类型
+
+#### 用户体验优化
+- 来源分镜选择：下拉列表仅显示当前用户的分镜作品
+- 分镜信息展示：显示标题、题材、语言、镜头数、来源剧本
+- 镜头卡编辑：可视化增删改排序，每个镜头卡独立卡片
+- 重新生成Prompt：单个镜头卡可一键重新生成Prompt
+- 重新编号：一键重新编号所有镜头卡
+- 生成状态：loading状态显示，错误提示友好
+- 统计信息：显示镜头卡数、来源镜头数
+
+---
+
 ## [2.6.0] - 2026-01-19
 
 ### 新增 (Added)
