@@ -125,11 +125,7 @@ export default function StoryboardGenerator() {
     toast({ title: t.saveSuccess });
   };
 
-  const leftPanel = (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">{t.storyboardGenerator}</p>
-    </div>
-  );
+  const leftPanel = null; // 移除左侧面板，节省空间
 
   const centerPanel = (
     <div className="space-y-6">

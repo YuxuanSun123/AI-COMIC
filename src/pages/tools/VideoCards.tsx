@@ -85,7 +85,7 @@ export default function VideoCards() {
     toast({ title: t.saveSuccess });
   };
 
-  const leftPanel = <div className="text-sm text-muted-foreground">{t.videoCards}</div>;
+  const leftPanel = null; // 移除左侧面板，节省空间
 
   const centerPanel = (
     <div className="space-y-6">

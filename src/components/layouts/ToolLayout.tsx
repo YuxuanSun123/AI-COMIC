@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 
 interface ToolLayoutProps {
-  leftPanel: ReactNode;
+  leftPanel?: ReactNode; // 改为可选
   centerPanel: ReactNode;
   rightPanel: ReactNode;
 }
@@ -14,16 +14,18 @@ export default function ToolLayout({ leftPanel, centerPanel, rightPanel }: ToolL
     <div className="container mx-auto px-4 py-8">
       {/* 使用 flex 布局，避免多个滚动条 */}
       <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
-        {/* 左侧面板 - 工具导航/类型选择 */}
-        <div className="xl:w-56 flex-shrink-0">
-          <Card className="bg-card border-border p-6 shadow-card">
-            {/* 移动端：不滚动，内容自适应 */}
-            {/* 桌面端：固定高度，内容自适应 */}
-            <div className="xl:max-h-[calc(100vh-12rem)]">
-              {leftPanel}
-            </div>
-          </Card>
-        </div>
+        {/* 左侧面板 - 工具导航/类型选择（可选） */}
+        {leftPanel && (
+          <div className="xl:w-56 flex-shrink-0">
+            <Card className="bg-card border-border p-6 shadow-card">
+              {/* 移动端：不滚动，内容自适应 */}
+              {/* 桌面端：固定高度，内容自适应 */}
+              <div className="xl:max-h-[calc(100vh-12rem)]">
+                {leftPanel}
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* 中间面板 - 编辑/生成区域 */}
         <div className="flex-1 min-w-0">
