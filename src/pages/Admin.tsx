@@ -104,6 +104,9 @@ export default function Admin() {
     }, 1000);
   };
 
+  // 调试阶段：暂时移除登录限制，方便开发调试
+  // TODO: 生产环境需要恢复登录验证
+  /*
   // 未登录时显示提示
   if (!currentUser) {
     return (
@@ -131,6 +134,7 @@ export default function Admin() {
       </div>
     );
   }
+  */
 
   return (
     <div className="container mx-auto px-4 py-8">
