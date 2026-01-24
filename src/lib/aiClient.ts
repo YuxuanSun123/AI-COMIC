@@ -167,6 +167,60 @@ export interface VideoCardsGenerationResult {
   }>;
 }
 
+// 剪辑计划生成payload类型
+export interface GenerateEditPlanPayload {
+  user: {
+    id: string;
+    nickname: string;
+    membership_tier: string;
+  };
+  lang: string;
+  genre: string;
+  source: {
+    video_cards_id: string | null;
+    cards: Array<{
+      card_no: number;
+      shot_ref: number;
+      visual_desc: string;
+      character_action: string;
+      lighting_mood: string;
+      camera_desc: string;
+      dialogue_voiceover: string;
+      prompt: string;
+      negative_prompt: string;
+      notes: string;
+    }>;
+    params_from_video_cards?: any;
+  };
+  params: {
+    pace: 'slow' | 'normal' | 'fast';
+    target_total_sec: number;
+    transition_style: 'clean' | 'cinematic' | 'dynamic';
+    audio_style: 'minimal' | 'rich' | 'dramatic';
+    subtitle_density: 'low' | 'mid' | 'high';
+    temperature: number;
+  };
+  meta: {
+    client: string;
+    version: string;
+  };
+}
+
+// 剪辑计划生成结果类型
+export interface EditPlanGenerationResult {
+  items: Array<{
+    item_no: number;
+    shot_ref: number;
+    source_prompt_ref: number;
+    asset_need: string;
+    voice_sfx: string;
+    transition: string;
+    duration_sec: number;
+    caption_subtitle: string;
+    notes: string;
+  }>;
+}
+
 /**
  * 通用请求方法
  * @param path API路径
@@ -297,19 +351,35 @@ export async function generateVideoCards(
 }
 
 /**
- * 生成剪辑计划（预留，暂未实现）
+ * 生成剪辑计划
  * @param payload 生成参数
- * @returns 占位响应
+ * @returns 剪辑计划生成结果
  */
-export async function generateEditPlan(payload: unknown): Promise<ApiResponse<unknown>> {
-  console.log('generateEditPlan called with:', payload);
-  return {
-    ok: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: '剪辑计划生成功能暂未实现'
+export async function generateEditPlan(
+  payload: GenerateEditPlanPayload
+): Promise<ApiResponse<EditPlanGenerationResult>> {
+  if (USE_REAL_API) {
+    // 真实API调用
+    return request<EditPlanGenerationResult>('/generate/edit-plan', payload);
+  } else {
+    // 使用mock生成器
+    try {
+      const { mockGenerateEditPlan } = await import('./mockGenerator');
+      const result = await mockGenerateEditPlan(payload);
+      return {
+        ok: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: 'MOCK_ERROR',
+          message: error instanceof Error ? error.message : 'Mock生成失败'
+        }
+      };
     }
-  };
+  }
 }
 
 export default {

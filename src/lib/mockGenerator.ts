@@ -813,3 +813,382 @@ function inferEmotion(genre: string, isZh: boolean): string {
     return emotionMap[genre] || 'balanced atmosphere';
   }
 }
+
+/**
+ * Mock生成剪辑计划
+ * @param payload 生成参数
+ * @returns 剪辑计划生成结果
+ */
+export async function mockGenerateEditPlan(
+  payload: any
+): Promise<any> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  const { lang, genre, source, params } = payload;
+  const { pace, target_total_sec, transition_style, audio_style, subtitle_density } = params;
+  const isZh = lang === 'zh';
+
+  const items: Array<{
+    item_no: number;
+    shot_ref: number;
+    source_prompt_ref: number;
+    asset_need: string;
+    voice_sfx: string;
+    transition: string;
+    duration_sec: number;
+    caption_subtitle: string;
+    notes: string;
+  }> = [];
+
+  // 从cards生成items（一一对应）
+  if (source.cards && source.cards.length > 0) {
+    // 第一步：计算每条的原始时长
+    const rawDurations = source.cards.map((card: any) => {
+      return calculateRawDuration(card, pace, isZh);
+    });
+
+    // 第二步：按比例缩放到target_total_sec
+    const totalRaw = rawDurations.reduce((sum: number, d: number) => sum + d, 0);
+    const scale = target_total_sec / totalRaw;
+    let durations = rawDurations.map((d: number) => {
+      return Math.max(1, Math.min(8, Math.round(d * scale)));
+    });
+
+    // 第三步：修正误差
+    let totalDuration = durations.reduce((sum: number, d: number) => sum + d, 0);
+    let diff = target_total_sec - totalDuration;
+    let index = 0;
+    while (diff !== 0 && index < durations.length) {
+      if (diff > 0) {
+        if (durations[index] < 8) {
+          durations[index]++;
+          diff--;
+        }
+      } else {
+        if (durations[index] > 1) {
+          durations[index]--;
+          diff++;
+        }
+      }
+      index++;
+      if (index >= durations.length) index = 0;
+      // 防止死循环
+      if (Math.abs(diff) > durations.length * 2) break;
+    }
+
+    // 第四步：生成items
+    for (let i = 0; i < source.cards.length; i++) {
+      const card = source.cards[i];
+      
+      // 生成asset_need
+      const asset_need = generateAssetNeed(card, isZh);
+
+      // 生成voice_sfx
+      const voice_sfx = generateVoiceSfx(card, audio_style, isZh);
+
+      // 生成transition
+      const transition = generateTransition(card, transition_style, i, source.cards.length, isZh);
+
+      // 生成caption_subtitle
+      const caption_subtitle = generateCaptionSubtitle(card, subtitle_density, isZh);
+
+      items.push({
+        item_no: i + 1,
+        shot_ref: card.shot_ref || (i + 1),
+        source_prompt_ref: card.card_no || (i + 1),
+        asset_need,
+        voice_sfx,
+        transition,
+        duration_sec: durations[i],
+        caption_subtitle,
+        notes: ''
+      });
+    }
+  }
+
+  return { items };
+}
+
+/**
+ * 计算原始时长（根据pace和内容关键词）
+ */
+function calculateRawDuration(card: any, pace: string, isZh: boolean): number {
+  // 基础时长
+  let base = 2.5;
+  if (pace === 'slow') base = 3.5;
+  else if (pace === 'fast') base = 1.8;
+
+  // 根据内容关键词加权
+  const content = `${card.visual_desc} ${card.character_action} ${card.lighting_mood} ${card.camera_desc}`.toLowerCase();
+  
+  // 动作关键词
+  const actionKeywords = isZh
+    ? ['打斗', '爆炸', '追逐', '冲突', '战斗', '奔跑', '逃跑']
+    : ['fight', 'explosion', 'chase', 'conflict', 'battle', 'run', 'escape'];
+  
+  // 情绪关键词
+  const emotionKeywords = isZh
+    ? ['情绪', '沉默', '凝视', '回忆', '思考', '哭泣', '微笑']
+    : ['emotion', 'silence', 'gaze', 'memory', 'think', 'cry', 'smile'];
+  
+  // 转场关键词
+  const transitionKeywords = isZh
+    ? ['转场', '闪回', '蒙太奇', '切换', '过渡']
+    : ['transition', 'flashback', 'montage', 'switch', 'fade'];
+
+  let bonus = 0;
+  
+  // 检查动作关键词
+  if (actionKeywords.some(kw => content.includes(kw))) {
+    bonus += 0.6;
+  }
+  
+  // 检查情绪关键词
+  if (emotionKeywords.some(kw => content.includes(kw))) {
+    bonus += pace === 'slow' ? 0.6 : 0.4;
+  }
+  
+  // 检查转场关键词
+  if (transitionKeywords.some(kw => content.includes(kw))) {
+    bonus += 0.3;
+  }
+
+  return base + bonus;
+}
+
+/**
+ * 生成素材需求
+ */
+function generateAssetNeed(card: any, isZh: boolean): string {
+  const parts: string[] = [];
+  
+  if (card.visual_desc && card.visual_desc.trim()) {
+    parts.push(card.visual_desc.trim());
+  }
+  
+  if (card.character_action && card.character_action.trim() && card.character_action !== '（无）' && card.character_action !== '(None)') {
+    parts.push(card.character_action.trim());
+  }
+  
+  if (card.lighting_mood && card.lighting_mood.trim()) {
+    parts.push(card.lighting_mood.trim());
+  }
+
+  if (parts.length === 0) {
+    return isZh ? '基础场景素材' : 'Basic scene assets';
+  }
+
+  return isZh ? parts.join('；') : parts.join('; ');
+}
+
+/**
+ * 生成配音/音效
+ */
+function generateVoiceSfx(card: any, audio_style: string, isZh: boolean): string {
+  const parts: string[] = [];
+
+  // 处理对白/旁白
+  if (card.dialogue_voiceover && card.dialogue_voiceover.trim() && card.dialogue_voiceover !== '（无对白）' && card.dialogue_voiceover !== '(No dialogue)') {
+    const dialogue = card.dialogue_voiceover.trim();
+    if (isZh) {
+      if (dialogue.includes('旁白') || dialogue.includes('：')) {
+        parts.push(dialogue);
+      } else {
+        parts.push(`对白：${dialogue}`);
+      }
+    } else {
+      if (dialogue.includes('Narration') || dialogue.includes(':')) {
+        parts.push(dialogue);
+      } else {
+        parts.push(`Dialogue: ${dialogue}`);
+      }
+    }
+  }
+
+  // 生成环境音（根据audio_style）
+  if (audio_style === 'rich' || audio_style === 'dramatic') {
+    const ambience = generateAmbience(card, isZh);
+    if (ambience) {
+      parts.push(ambience);
+    }
+  }
+
+  if (parts.length === 0) {
+    return isZh ? '（无音效）' : '(No audio)';
+  }
+
+  return isZh ? parts.join('；') : parts.join('; ');
+}
+
+/**
+ * 生成环境音
+ */
+function generateAmbience(card: any, isZh: boolean): string {
+  const content = `${card.visual_desc} ${card.lighting_mood}`.toLowerCase();
+
+  if (isZh) {
+    const ambienceMap: Record<string, string[]> = {
+      night: ['环境声：夜风', '环境声：虫鸣', '环境声：远处车流'],
+      street: ['环境声：人群嘈杂', '环境声：车流', '环境声：脚步声'],
+      rain: ['环境声：雨声', '环境声：雷声', '环境声：水滴'],
+      indoor: ['环境声：空调', '环境声：脚步回声', '环境声：门响'],
+      tech: ['环境声：电流', '环境声：机械运转', '环境声：电子音'],
+      nature: ['环境声：鸟鸣', '环境声：风声', '环境声：流水']
+    };
+
+    for (const [key, sounds] of Object.entries(ambienceMap)) {
+      if (content.includes(key) || content.includes(key === 'night' ? '夜' : key === 'street' ? '街' : key === 'rain' ? '雨' : key === 'indoor' ? '室内' : key === 'tech' ? '科技' : '自然')) {
+        return sounds[Math.floor(Math.random() * sounds.length)];
+      }
+    }
+
+    return '环境声：背景音';
+  } else {
+    const ambienceMap: Record<string, string[]> = {
+      night: ['Ambience: night wind', 'Ambience: crickets', 'Ambience: distant traffic'],
+      street: ['Ambience: crowd noise', 'Ambience: traffic', 'Ambience: footsteps'],
+      rain: ['Ambience: rain', 'Ambience: thunder', 'Ambience: water drops'],
+      indoor: ['Ambience: air conditioning', 'Ambience: footstep echoes', 'Ambience: door sounds'],
+      tech: ['Ambience: electrical hum', 'Ambience: machinery', 'Ambience: electronic sounds'],
+      nature: ['Ambience: birds', 'Ambience: wind', 'Ambience: flowing water']
+    };
+
+    for (const [key, sounds] of Object.entries(ambienceMap)) {
+      if (content.includes(key)) {
+        return sounds[Math.floor(Math.random() * sounds.length)];
+      }
+    }
+
+    return 'Ambience: background sound';
+  }
+}
+
+/**
+ * 生成转场
+ */
+function generateTransition(card: any, transition_style: string, index: number, total: number, isZh: boolean): string {
+  // 最后一条不需要转场
+  if (index === total - 1) {
+    return isZh ? '无' : 'none';
+  }
+
+  const content = `${card.lighting_mood} ${card.visual_desc}`.toLowerCase();
+  
+  // 根据transition_style确定概率分布
+  let transitions: string[] = [];
+  let weights: number[] = [];
+
+  if (transition_style === 'clean') {
+    transitions = ['cut', 'fade'];
+    weights = [0.8, 0.2];
+  } else if (transition_style === 'cinematic') {
+    transitions = ['cut', 'fade', 'flash'];
+    weights = [0.6, 0.3, 0.1];
+  } else if (transition_style === 'dynamic') {
+    transitions = ['cut', 'whip', 'flash', 'glitch'];
+    weights = [0.5, 0.25, 0.15, 0.1];
+  }
+
+  // 根据lighting_mood/情绪偏置
+  const tensionKeywords = isZh
+    ? ['紧张', '惊悚', '追逐', '冲突', '危险']
+    : ['tense', 'thriller', 'chase', 'conflict', 'danger'];
+  
+  const softKeywords = isZh
+    ? ['抒情', '回忆', '温柔', '柔和', '浪漫']
+    : ['lyrical', 'memory', 'gentle', 'soft', 'romantic'];
+
+  const isTension = tensionKeywords.some(kw => content.includes(kw));
+  const isSoft = softKeywords.some(kw => content.includes(kw));
+
+  if (isTension) {
+    // 偏向cut/whip/flash
+    if (transitions.includes('cut')) {
+      const cutIndex = transitions.indexOf('cut');
+      weights[cutIndex] += 0.1;
+    }
+    if (transitions.includes('whip')) {
+      const whipIndex = transitions.indexOf('whip');
+      weights[whipIndex] += 0.05;
+    }
+  } else if (isSoft) {
+    // 偏向fade
+    if (transitions.includes('fade')) {
+      const fadeIndex = transitions.indexOf('fade');
+      weights[fadeIndex] += 0.15;
+    }
+  }
+
+  // 归一化权重
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  weights = weights.map(w => w / totalWeight);
+
+  // 按权重随机选择
+  const rand = Math.random();
+  let cumulative = 0;
+  for (let i = 0; i < transitions.length; i++) {
+    cumulative += weights[i];
+    if (rand <= cumulative) {
+      return transitions[i];
+    }
+  }
+
+  return transitions[0];
+}
+
+/**
+ * 生成字幕要点
+ */
+function generateCaptionSubtitle(card: any, subtitle_density: string, isZh: boolean): string {
+  // 从dialogue_voiceover提取
+  let text = '';
+  if (card.dialogue_voiceover && card.dialogue_voiceover.trim() && card.dialogue_voiceover !== '（无对白）' && card.dialogue_voiceover !== '(No dialogue)') {
+    text = card.dialogue_voiceover.trim();
+    
+    // 移除"旁白："、"对白："等前缀
+    if (isZh) {
+      text = text.replace(/^(旁白|对白|角色)：/, '');
+    } else {
+      text = text.replace(/^(Narration|Dialogue|Character):\s*/, '');
+    }
+  }
+
+  // 如果没有对白，从visual_desc提取关键词
+  if (!text) {
+    text = card.visual_desc || '';
+  }
+
+  // 根据subtitle_density控制长度
+  if (subtitle_density === 'low') {
+    // 只保留关键一句（≤12字）
+    if (isZh) {
+      text = text.substring(0, 12);
+    } else {
+      const words = text.split(' ').slice(0, 6);
+      text = words.join(' ');
+    }
+  } else if (subtitle_density === 'mid') {
+    // 关键句 + 情绪词（≤18字）
+    if (isZh) {
+      text = text.substring(0, 18);
+    } else {
+      const words = text.split(' ').slice(0, 10);
+      text = words.join(' ');
+    }
+  } else if (subtitle_density === 'high') {
+    // 可多一句提示（≤26字）
+    if (isZh) {
+      text = text.substring(0, 26);
+    } else {
+      const words = text.split(' ').slice(0, 15);
+      text = words.join(' ');
+    }
+  }
+
+  if (!text) {
+    return isZh ? '（无字幕）' : '(No subtitle)';
+  }
+
+  return text;
+}

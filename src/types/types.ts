@@ -18,7 +18,7 @@ export interface Work {
   id: string;
   type: WorkType;
   title: string;
-  content: ScriptContent | EnhancedScriptContent | StoryboardContent | EnhancedStoryboardContent | VideoCardsContent | EnhancedVideoCardsContent | EditPlanContent;
+  content: ScriptContent | EnhancedScriptContent | StoryboardContent | EnhancedStoryboardContent | VideoCardsContent | EnhancedVideoCardsContent | EditPlanContent | EnhancedEditPlanContent;
   author_id: string;
   lang: 'zh' | 'en';
   created_ms: number;
@@ -194,7 +194,48 @@ export interface VideoCard {
   order: number;
 }
 
-// 剪辑计划内容结构
+// 剪辑计划内容结构（新版 - 用于AI生成和工具联动）
+export interface EnhancedEditPlanContent {
+  lang: 'zh' | 'en'; // 语言
+  genre: string; // 题材
+  source: {
+    video_cards_id: string | null; // 来源镜头卡ID
+    video_cards_title: string; // 来源镜头卡标题
+    card_count: number; // 来源镜头卡数
+    storyboard_id?: string; // 来源分镜ID（可选）
+  };
+  params: EditPlanParams; // 生成参数
+  items: EnhancedEditItem[]; // 剪辑条目列表
+  totals: {
+    total_items: number; // 总条目数
+    total_sec: number; // 总时长（秒）
+  };
+}
+
+// 剪辑计划生成参数
+export interface EditPlanParams {
+  pace: 'slow' | 'normal' | 'fast'; // 节奏
+  target_total_sec: number; // 目标总时长（秒）
+  transition_style: 'clean' | 'cinematic' | 'dynamic'; // 转场风格
+  audio_style: 'minimal' | 'rich' | 'dramatic'; // 音频风格
+  subtitle_density: 'low' | 'mid' | 'high'; // 字幕密度
+  temperature: number; // 温度（0-1）
+}
+
+// 增强剪辑条目结构（用于AI生成和剪辑合成）
+export interface EnhancedEditItem {
+  item_no: number; // 序号
+  shot_ref: number; // 对应shot/card编号
+  source_prompt_ref: number; // 用于回溯prompt
+  asset_need: string; // 素材需求
+  voice_sfx: string; // 配音/音效
+  transition: string; // 转场
+  duration_sec: number; // 时长（秒）
+  caption_subtitle: string; // 字幕要点
+  notes: string; // 备注
+}
+
+// 剪辑计划内容结构（旧版 - 保持兼容）
 export interface EditPlanContent {
   clips: EditClip[];
 }

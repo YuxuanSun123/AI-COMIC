@@ -7,6 +7,73 @@
 
 ---
 
+## [2.8.0] - 2026-01-19
+
+### 新增 (Added)
+
+#### 剪辑合成完整联动工作流
+- 实现剪辑合成（#/tools/edit）的完整联动工作流
+- 左栏：来源镜头卡下拉选择（仅显示type=video_cards），自动选中source_video_cards_id，显示来源摘要信息（标题/题材/语言/镜头卡数/来源分镜）
+- 中栏：作品标题输入+按钮行（生成剪辑清单/保存/另存为/导出TXT/导出JSON）+剪辑清单编辑器（每条item包含item_no/shot_ref/source_prompt_ref/asset_need/voice_sfx/transition/duration_sec/caption_subtitle/notes，支持编辑/增删/排序/重新编号）
+- 右栏：生成参数（pace/target_total_sec/transition_style/audio_style/subtitle_density/temperature）+统计信息（剪辑条目/总时长/来源镜头卡）
+- 剪辑清单编辑器：与cards一一对应，每条item可单独编辑所有字段，支持新增/删除/上移/下移/重新编号
+- 自动载入：URL query或localStorage有source_video_cards_id时自动选中并载入镜头卡
+- Studio联动：edit_plan作品点击标题跳转#/tools/edit?open_id=xxx自动载入
+
+#### AI客户端增强
+- 实现generateEditPlan方法（src/lib/aiClient.ts）
+- 定义GenerateEditPlanPayload类型（user/lang/genre/source包含video_cards_id/cards/params_from_video_cards、params包含pace/target_total_sec/transition_style/audio_style/subtitle_density/temperature、meta）
+- 定义EditPlanGenerationResult类型（items[]）
+- USE_REAL_API=false时调用mockGenerateEditPlan
+- API约定：POST /api/generate/edit-plan，返回{ok, data:{items}}
+
+#### Mock生成器增强
+- 实现mockGenerateEditPlan方法（src/lib/mockGenerator.ts，400行）
+- 一条card → 一条item（数量一致）
+- 时长分配规则：根据pace确定base（slow 3.5/normal 2.5/fast 1.8），根据card内容关键词加权（打斗/爆炸/追逐/冲突 +0.6，情绪/沉默/凝视/回忆 +0.4，转场/闪回/蒙太奇 +0.3），按比例缩放到target_total_sec，修正误差（+1或-1直到total_sec==target_total_sec）
+- 转场生成规则：根据transition_style确定概率分布（clean 80% cut 20% fade，cinematic 60% cut 30% fade 10% flash，dynamic 50% cut 25% whip 15% flash 10% glitch），根据lighting_mood/情绪偏置（紧张/惊悚/追逐偏向cut/whip/flash，抒情/回忆/温柔偏向fade）
+- voice_sfx生成规则：从dialogue_voiceover提取对白/旁白，根据audio_style生成环境音（rich/dramatic时生成，minimal时不生成），环境音根据场景关键词生成（night夜风/虫鸣/远处车流，street人群嘈杂/车流/脚步声，rain雨声/雷声/水滴，indoor空调/脚步回声/门响，tech电流/机械运转/电子音，nature鸟鸣/风声/流水）
+- caption_subtitle生成规则：从dialogue_voiceover提取，根据subtitle_density控制长度（low ≤12字，mid ≤18字，high ≤26字），移除"旁白："、"对白："等前缀
+- asset_need生成规则：合成visual_desc + character_action + lighting_mood
+- 支持中英文：lang=en时所有字段内容英文一致
+
+#### 固化数据结构（用于工具联动）
+- 定义EnhancedEditPlanContent类型（works.content for type=edit_plan）
+- 包含：lang、genre、source（video_cards_id/video_cards_title/card_count/storyboard_id）、params、items[]、totals（total_items/total_sec）
+- source.video_cards_id：若来自镜头卡则必填
+- items[]：剪辑合成的直接输入
+- totals.total_sec：items.duration_sec之和（保存时重算）
+- 定义EditPlanParams类型：pace、target_total_sec、transition_style、audio_style、subtitle_density、temperature
+- 定义EnhancedEditItem类型：item_no、shot_ref、source_prompt_ref、asset_need、voice_sfx、transition、duration_sec、caption_subtitle、notes
+
+#### 导出功能实现
+- 导出TXT：适合发剪辑师，格式包含项目名/总时长/镜头数，每条item包含序号/时长/转场/素材/声音/字幕/备注
+- 导出JSON：直接导出EnhancedEditPlanContent结构，可用于程序化处理
+- 使用Blob + a.download实现文件下载
+
+### 优化 (Improved)
+
+#### 类型定义增强
+- Work类型支持EnhancedEditPlanContent
+- 添加EditPlanParams类型
+- 添加EnhancedEditItem类型
+
+#### 用户体验优化
+- 来源镜头卡选择：下拉列表仅显示当前用户的镜头卡作品
+- 镜头卡信息展示：显示标题、题材、语言、镜头卡数、来源分镜
+- 剪辑条目编辑：可视化增删改排序，每个条目独立卡片
+- 重新编号：一键重新编号所有条目
+- 生成状态：loading状态显示，错误提示友好
+- 统计信息：显示剪辑条目数、总时长、来源镜头卡数
+- 导出功能：支持TXT和JSON两种格式
+
+#### 完整数据流水线
+- Script（剧本 + scenes）→ Storyboard（分镜 + shots）→ Video Cards（镜头卡 + AI Prompt）→ Edit Plan（剪辑清单 + 时长/转场/音效/字幕）
+- 每个环节数据结构固化，确保无缝衔接
+- 支持从任意环节载入并继续编辑
+
+---
+
 ## [2.7.0] - 2026-01-19
 
 ### 新增 (Added)

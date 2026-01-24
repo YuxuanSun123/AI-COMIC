@@ -15,6 +15,7 @@ export interface I18nTexts {
   scriptGenerator: string;
   storyboardGenerator: string;
   videoCards: string;
+  editPlan: string;
   editing: string;
   links: string;
   pricing: string;
@@ -171,6 +172,7 @@ export const i18n: Record<Language, I18nTexts> = {
     scriptGenerator: '剧本生成器',
     storyboardGenerator: '分镜生成器',
     videoCards: '镜头卡',
+    editPlan: '剪辑合成',
     editing: '剪辑合成',
     links: '友情链接',
     pricing: '会员方案',
@@ -315,6 +317,7 @@ export const i18n: Record<Language, I18nTexts> = {
     scriptGenerator: 'Script Generator',
     storyboardGenerator: 'Storyboard Generator',
     videoCards: 'Video Cards',
+    editPlan: 'Edit Plan',
     editing: 'Editing',
     links: 'Friend Links',
     pricing: 'Pricing',

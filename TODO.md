@@ -102,6 +102,34 @@
 - [ ] 邮箱唯一性验证增强
 - [ ] 密码规则验证增强
 
+## v2.8.0 剪辑合成完整联动工作流（2026-01-19）
+- [x] 更新aiClient.ts，实现generateEditPlan方法
+- [x] 定义GenerateEditPlanPayload和EditPlanGenerationResult类型
+- [x] 创建mockGenerateEditPlan方法
+- [x] Mock生成器：一条card → 一条item（数量一致）
+- [x] Mock生成器：时长分配规则实现（pace决定base，内容关键词加权，按比例缩放，修正误差）
+- [x] Mock生成器：转场生成规则实现（根据transition_style确定概率分布，根据lighting_mood/情绪偏置）
+- [x] Mock生成器：voice_sfx生成规则实现（从dialogue_voiceover提取，根据audio_style生成环境音）
+- [x] Mock生成器：caption_subtitle生成规则实现（从dialogue_voiceover提取，根据subtitle_density控制长度）
+- [x] Mock生成器：asset_need生成规则实现（合成visual_desc + character_action + lighting_mood）
+- [x] Mock生成器：支持中英文
+- [x] 固化数据结构（EnhancedEditPlanContent）
+- [x] 重写剪辑合成UI（三栏布局）
+- [x] 左栏：来源镜头卡下拉选择、镜头卡信息展示
+- [x] 中栏：作品标题输入+按钮行+剪辑清单编辑器
+- [x] 中栏：剪辑条目编辑（item_no/shot_ref/source_prompt_ref/asset_need/voice_sfx/transition/duration_sec/caption_subtitle/notes）
+- [x] 中栏：支持增删排序（新增/删除/上移/下移/重新编号）
+- [x] 右栏：生成参数（pace/target_total_sec/transition_style/audio_style/subtitle_density/temperature）
+- [x] 生成逻辑：组装payload → 调用aiClient → 落地为标准结构
+- [x] 保存功能：保存、另存为
+- [x] 导出功能：导出TXT、导出JSON
+- [x] 自动载入：URL query或localStorage有source_video_cards_id时自动选中
+- [x] Studio联动：edit_plan作品点击标题跳转#/tools/edit?open_id=xxx
+- [x] 类型定义：EditPlanParams、EnhancedEditItem
+- [x] 统计信息：剪辑条目数、总时长、来源镜头卡数
+- [x] 辅助函数：calculateRawDuration、generateAssetNeed、generateVoiceSfx、generateAmbience、generateTransition、generateCaptionSubtitle
+- [x] 添加i18n翻译：editPlan
+
 ## v2.7.0 镜头卡生成器完整联动工作流（2026-01-19）
 - [x] 更新aiClient.ts，实现generateVideoCards方法
 - [x] 定义GenerateVideoCardsPayload和VideoCardsGenerationResult类型
@@ -261,3 +289,5 @@
 ✅ v2.5.0 剧本生成器完整工作流完成，支持AI生成、工具联动、数据固化！
 ✅ v2.6.0 分镜生成器完整联动工作流完成，支持从剧本生成分镜、编辑排序、工具联动！
 ✅ v2.7.0 镜头卡生成器完整联动工作流完成，支持从分镜生成镜头卡、Prompt结构、工具联动！
+✅ v2.8.0 剪辑合成完整联动工作流完成，支持从镜头卡生成剪辑清单、时长分配、转场规则、导出功能！
+✅ 完整数据流水线：Script → Storyboard → Video Cards → Edit Plan，端到端闭环！
