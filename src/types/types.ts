@@ -18,7 +18,7 @@ export interface Work {
   id: string;
   type: WorkType;
   title: string;
-  content: ScriptContent | EnhancedScriptContent | StoryboardContent | VideoCardsContent | EditPlanContent;
+  content: ScriptContent | EnhancedScriptContent | StoryboardContent | EnhancedStoryboardContent | VideoCardsContent | EditPlanContent;
   author_id: string;
   lang: 'zh' | 'en';
   created_ms: number;
@@ -90,7 +90,44 @@ export interface Dialogue {
   line: string;
 }
 
-// 分镜内容结构
+// 分镜内容结构（新版 - 用于AI生成和工具联动）
+export interface EnhancedStoryboardContent {
+  lang: 'zh' | 'en'; // 语言
+  genre: string; // 题材
+  source: {
+    script_id: string | null; // 来源剧本ID
+    script_title: string; // 来源剧本标题
+    script_updated_ms: number; // 来源剧本更新时间
+  };
+  params: StoryboardParams; // 生成参数
+  shots: EnhancedShot[]; // 镜头列表
+  updated_from: {
+    source_storyboard_id: string | null; // 来源分镜ID
+  };
+}
+
+// 分镜生成参数
+export interface StoryboardParams {
+  shot_density: 'sparse' | 'standard' | 'dense'; // 镜头密度
+  visual_style: string; // 视觉风格
+  camera_variety: 'low' | 'mid' | 'high'; // 镜头多样性
+  temperature: number; // 温度（0-1）
+  max_shots: number; // 最大镜头数
+}
+
+// 增强镜头结构（用于AI生成和镜头卡联动）
+export interface EnhancedShot {
+  shot_no: number; // 镜头编号
+  scene_ref: number; // 来自第几场景
+  frame: string; // 画面描述
+  action: string; // 动作
+  camera: string; // 机位/焦段/运动
+  dialogue: string; // 对白/旁白
+  duration_sec: number; // 时长（秒）
+  notes: string; // 备注
+}
+
+// 分镜内容结构（旧版 - 保持兼容）
 export interface StoryboardContent {
   shots: Shot[];
 }

@@ -102,6 +102,29 @@
 - [ ] 邮箱唯一性验证增强
 - [ ] 密码规则验证增强
 
+## v2.6.0 分镜生成器完整联动工作流（2026-01-19）
+- [x] 更新aiClient.ts，实现generateStoryboard方法
+- [x] 定义GenerateStoryboardPayload和StoryboardGenerationResult类型
+- [x] 创建mockGenerateStoryboard方法
+- [x] Mock生成器：根据scenes生成shots（每个scene 3-6个shots）
+- [x] Mock生成器：camera多样化（由camera_variety控制）
+- [x] Mock生成器：max_shots严格裁剪
+- [x] Mock生成器：支持中英文
+- [x] 固化数据结构（EnhancedStoryboardContent）
+- [x] 重写分镜生成器UI（三栏布局）
+- [x] 左栏：来源剧本下拉选择、剧本信息展示
+- [x] 中栏：输入区（剧本预览或粘贴片段）+按钮行+分镜列表编辑器
+- [x] 中栏：分镜编辑（shot_no/scene_ref/frame/action/camera/dialogue/duration_sec/notes）
+- [x] 中栏：支持增删排序（新增/删除/上移/下移/重新编号）
+- [x] 右栏：参数面板（shot_density/visual_style/camera_variety/temperature/max_shots）
+- [x] 生成逻辑：组装payload → 调用aiClient → 落地为标准结构
+- [x] 保存功能：保存、另存为
+- [x] 工具联动：生成镜头卡按钮（跳转到镜头卡生成器）
+- [x] 自动载入：URL query或localStorage有source_script_id时自动选中
+- [x] Studio联动：storyboard作品点击标题跳转#/tools/storyboard?open_id=xxx
+- [x] 类型定义：StoryboardParams、EnhancedShot
+- [x] 统计信息：镜头数、总时长、来源场景数
+
 ## v2.5.0 剧本生成器完整工作流（2026-01-19）
 - [x] 创建AI客户端模块（aiClient.ts）
 - [x] 创建Mock生成器模块（mockGenerator.ts）
@@ -209,3 +232,4 @@
 ✅ v2.4.2 UI统一优化完成，所有工具页面样式一致，用户体验连贯！
 ✅ v2.4.3 布局优化完成，移除无用左侧面板，内容区域更宽敞！
 ✅ v2.5.0 剧本生成器完整工作流完成，支持AI生成、工具联动、数据固化！
+✅ v2.6.0 分镜生成器完整联动工作流完成，支持从剧本生成分镜、编辑排序、工具联动！

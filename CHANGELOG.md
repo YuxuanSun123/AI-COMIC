@@ -7,6 +7,66 @@
 
 ---
 
+## [2.6.0] - 2026-01-19
+
+### 新增 (Added)
+
+#### 分镜生成器完整联动工作流
+- 实现分镜生成器（#/tools/storyboard）的完整联动工作流
+- 左栏：来源剧本下拉选择（仅显示type=script），自动选中source_script_id，显示剧本基础信息（标题/题材/语言/更新时间/场景数）
+- 中栏：输入区（来源剧本预览或粘贴剧本片段）+按钮行（生成分镜/保存/另存为/生成镜头卡）+分镜列表编辑器（可编辑卡片，支持增删排序）
+- 右栏：参数面板（shot_density/visual_style/camera_variety/temperature/max_shots）+统计信息（镜头数/总时长/来源场景）
+- 分镜列表编辑器：每条shot包含shot_no/scene_ref/frame/action/camera/dialogue/duration_sec/notes，支持新增/删除/上移/下移/重新编号
+- 自动载入：URL query或localStorage有source_script_id时自动选中并载入剧本
+- Studio联动：storyboard作品点击标题跳转#/tools/storyboard?open_id=xxx自动载入
+
+#### AI客户端增强
+- 实现generateStoryboard方法（src/lib/aiClient.ts）
+- 定义GenerateStoryboardPayload类型（user/lang/genre/source/fallback_text/params/meta）
+- 定义StoryboardGenerationResult类型（shots[]）
+- USE_REAL_API=false时调用mockGenerateStoryboard
+- API约定：POST /api/generate/storyboard，返回{ok, data:{shots}}
+
+#### Mock生成器增强
+- 实现mockGenerateStoryboard方法（src/lib/mockGenerator.ts）
+- 根据source.scenes生成shots（每个scene生成3-6个shots，由shot_density控制）
+- scene_ref写入对应scene_no
+- frame/action/dialogue/camera都生成非空内容
+- camera多样化（由camera_variety控制）：低（固定中景/近景）、中（加入全景/特写/跟拍/推拉摇移）、高（再加入俯拍/仰拍/手持抖动/长镜头/景深变化/斯坦尼康/航拍）
+- max_shots严格裁剪总镜头数
+- 支持中英文：lang=en时字段内容英文一致
+- duration_sec默认3-6秒随机
+
+#### 固化数据结构（用于工具联动）
+- 定义EnhancedStoryboardContent类型（works.content for type=storyboard）
+- 包含：lang、genre、source（script_id/script_title/script_updated_ms）、params、shots[]、updated_from
+- source.script_id：若来自剧本则必填，若粘贴剧本片段则为null
+- shots[]：后续Video Cards的唯一输入来源
+- 定义StoryboardParams类型：shot_density、visual_style、camera_variety、temperature、max_shots
+- 定义EnhancedShot类型：shot_no、scene_ref、frame、action、camera、dialogue、duration_sec、notes
+
+#### 工具联动入口
+- "生成镜头卡"按钮：跳转到#/tools/video
+- 使用localStorage传递source_storyboard_id（last_source_storyboard_id）
+- 镜头卡生成器可自动选中该分镜作为输入来源
+
+### 优化 (Improved)
+
+#### 类型定义增强
+- Work类型支持EnhancedStoryboardContent
+- 添加StoryboardParams类型
+- 添加EnhancedShot类型
+
+#### 用户体验优化
+- 来源剧本选择：下拉列表仅显示当前用户的剧本作品
+- 剧本信息展示：显示标题、题材、语言、更新时间、场景数
+- 分镜编辑：可视化增删改排序，每个镜头独立卡片
+- 重新编号：一键重新编号所有镜头
+- 生成状态：loading状态显示，错误提示友好
+- 统计信息：显示镜头数、总时长、来源场景数
+
+---
+
 ## [2.5.0] - 2026-01-19
 
 ### 新增 (Added)

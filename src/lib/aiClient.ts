@@ -63,6 +63,59 @@ export interface ScriptGenerationResult {
   }>;
 }
 
+// 分镜生成payload类型
+export interface GenerateStoryboardPayload {
+  user: {
+    id: string;
+    nickname: string;
+    membership_tier: string;
+  };
+  lang: string;
+  genre: string;
+  source: {
+    script_id: string | null;
+    script_title: string;
+    scenes?: Array<{
+      scene_no: number;
+      location: string;
+      summary: string;
+      dialogues: Array<{
+        speaker: string;
+        line: string;
+      }>;
+      actions: string[];
+      camera_suggestions: string;
+    }>;
+    script_text?: string;
+  };
+  fallback_text?: string;
+  params: {
+    shot_density: 'sparse' | 'standard' | 'dense';
+    visual_style: string;
+    camera_variety: 'low' | 'mid' | 'high';
+    temperature: number;
+    max_shots: number;
+  };
+  meta: {
+    client: string;
+    version: string;
+  };
+}
+
+// 分镜生成结果类型
+export interface StoryboardGenerationResult {
+  shots: Array<{
+    shot_no: number;
+    scene_ref: number;
+    frame: string;
+    action: string;
+    camera: string;
+    dialogue: string;
+    duration_sec: number;
+    notes: string;
+  }>;
+}
+
 /**
  * 通用请求方法
  * @param path API路径
@@ -129,19 +182,35 @@ export async function generateScript(
 }
 
 /**
- * 生成分镜（预留，暂未实现）
+ * 生成分镜
  * @param payload 生成参数
- * @returns 占位响应
+ * @returns 分镜生成结果
  */
-export async function generateStoryboard(payload: unknown): Promise<ApiResponse<unknown>> {
-  console.log('generateStoryboard called with:', payload);
-  return {
-    ok: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: '分镜生成功能暂未实现'
+export async function generateStoryboard(
+  payload: GenerateStoryboardPayload
+): Promise<ApiResponse<StoryboardGenerationResult>> {
+  if (USE_REAL_API) {
+    // 真实API调用
+    return request<StoryboardGenerationResult>('/generate/storyboard', payload);
+  } else {
+    // 使用mock生成器
+    try {
+      const { mockGenerateStoryboard } = await import('./mockGenerator');
+      const result = await mockGenerateStoryboard(payload);
+      return {
+        ok: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: 'MOCK_ERROR',
+          message: error instanceof Error ? error.message : 'Mock生成失败'
+        }
+      };
     }
-  };
+  }
 }
 
 /**

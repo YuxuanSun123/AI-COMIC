@@ -348,3 +348,221 @@ function generateScriptText(
 
   return script;
 }
+
+/**
+ * Mock生成分镜
+ * @param payload 生成参数
+ * @returns 分镜生成结果
+ */
+export async function mockGenerateStoryboard(
+  payload: any
+): Promise<any> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  const { lang, genre, source, params } = payload;
+  const { shot_density, visual_style, camera_variety, max_shots } = params;
+  const isZh = lang === 'zh';
+
+  // 根据shot_density确定每个scene生成多少个shots
+  const shotsPerScene = shot_density === 'sparse' ? 3 : shot_density === 'dense' ? 6 : 4;
+
+  const shots: Array<{
+    shot_no: number;
+    scene_ref: number;
+    frame: string;
+    action: string;
+    camera: string;
+    dialogue: string;
+    duration_sec: number;
+    notes: string;
+  }> = [];
+
+  // 如果有结构化scenes，按scenes生成
+  if (source.scenes && source.scenes.length > 0) {
+    let shotNo = 1;
+    
+    for (const scene of source.scenes) {
+      const sceneShotsCount = Math.min(shotsPerScene, max_shots - shots.length);
+      if (sceneShotsCount <= 0) break;
+
+      for (let i = 0; i < sceneShotsCount; i++) {
+        const frame = generateFrame(scene, i, genre, visual_style, isZh);
+        const action = generateAction(scene, i, isZh);
+        const camera = generateCamera(i, camera_variety, isZh);
+        const dialogue = generateDialogue(scene, i, isZh);
+        const duration = Math.floor(Math.random() * 3) + 3; // 3-6秒
+
+        shots.push({
+          shot_no: shotNo++,
+          scene_ref: scene.scene_no,
+          frame,
+          action,
+          camera,
+          dialogue,
+          duration_sec: duration,
+          notes: ''
+        });
+
+        if (shots.length >= max_shots) break;
+      }
+
+      if (shots.length >= max_shots) break;
+    }
+  } else {
+    // 如果没有结构化scenes，生成默认分镜
+    const defaultShotsCount = Math.min(max_shots, 10);
+    for (let i = 0; i < defaultShotsCount; i++) {
+      shots.push({
+        shot_no: i + 1,
+        scene_ref: Math.floor(i / shotsPerScene) + 1,
+        frame: isZh ? `画面${i + 1}：场景描述` : `Frame ${i + 1}: Scene description`,
+        action: isZh ? '角色动作描述' : 'Character action',
+        camera: generateCamera(i, camera_variety, isZh),
+        dialogue: isZh ? '对白内容' : 'Dialogue content',
+        duration_sec: 4,
+        notes: ''
+      });
+    }
+  }
+
+  return { shots };
+}
+
+/**
+ * 生成画面描述
+ */
+function generateFrame(
+  scene: any,
+  shotIndex: number,
+  genre: string,
+  visualStyle: string,
+  isZh: boolean
+): string {
+  if (isZh) {
+    const templates = [
+      `${scene.location}，${scene.summary}`,
+      `特写：${scene.location}的细节`,
+      `全景：展现${scene.location}的整体环境`,
+      `${scene.location}，气氛${genre === 'thriller' ? '紧张' : genre === 'romance' ? '温馨' : '平静'}`,
+      `镜头聚焦在${scene.location}的关键物品上`
+    ];
+    return templates[shotIndex % templates.length];
+  } else {
+    const templates = [
+      `${scene.location}, ${scene.summary}`,
+      `Close-up: Details of ${scene.location}`,
+      `Wide shot: Overall environment of ${scene.location}`,
+      `${scene.location}, atmosphere is ${genre === 'thriller' ? 'tense' : genre === 'romance' ? 'warm' : 'calm'}`,
+      `Focus on key objects in ${scene.location}`
+    ];
+    return templates[shotIndex % templates.length];
+  }
+}
+
+/**
+ * 生成动作描述
+ */
+function generateAction(scene: any, shotIndex: number, isZh: boolean): string {
+  if (scene.actions && scene.actions.length > 0) {
+    return scene.actions[shotIndex % scene.actions.length];
+  }
+
+  if (isZh) {
+    const templates = [
+      '角色缓缓走进画面',
+      '角色停下脚步，环顾四周',
+      '角色拿起物品，仔细端详',
+      '角色转身离开',
+      '角色与另一角色对视'
+    ];
+    return templates[shotIndex % templates.length];
+  } else {
+    const templates = [
+      'Character slowly enters the frame',
+      'Character stops and looks around',
+      'Character picks up an object and examines it',
+      'Character turns and leaves',
+      'Character makes eye contact with another'
+    ];
+    return templates[shotIndex % templates.length];
+  }
+}
+
+/**
+ * 生成镜头机位
+ */
+function generateCamera(shotIndex: number, variety: string, isZh: boolean): string {
+  if (isZh) {
+    const low = ['中景', '近景', '中景', '近景'];
+    const mid = ['全景', '中景', '近景', '特写', '跟拍', '推镜头', '拉镜头', '摇镜头'];
+    const high = [
+      '全景',
+      '中景',
+      '近景',
+      '特写',
+      '跟拍',
+      '推镜头',
+      '拉镜头',
+      '摇镜头',
+      '俯拍',
+      '仰拍',
+      '手持抖动',
+      '长镜头',
+      '景深变化',
+      '斯坦尼康',
+      '航拍'
+    ];
+
+    const cameras = variety === 'low' ? low : variety === 'high' ? high : mid;
+    return cameras[shotIndex % cameras.length];
+  } else {
+    const low = ['Medium shot', 'Close-up', 'Medium shot', 'Close-up'];
+    const mid = [
+      'Wide shot',
+      'Medium shot',
+      'Close-up',
+      'Extreme close-up',
+      'Tracking shot',
+      'Push in',
+      'Pull out',
+      'Pan'
+    ];
+    const high = [
+      'Wide shot',
+      'Medium shot',
+      'Close-up',
+      'Extreme close-up',
+      'Tracking shot',
+      'Push in',
+      'Pull out',
+      'Pan',
+      'High angle',
+      'Low angle',
+      'Handheld',
+      'Long take',
+      'Depth of field change',
+      'Steadicam',
+      'Aerial shot'
+    ];
+
+    const cameras = variety === 'low' ? low : variety === 'high' ? high : mid;
+    return cameras[shotIndex % cameras.length];
+  }
+}
+
+/**
+ * 生成对白
+ */
+function generateDialogue(scene: any, shotIndex: number, isZh: boolean): string {
+  if (scene.dialogues && scene.dialogues.length > 0) {
+    const dialogue = scene.dialogues[shotIndex % scene.dialogues.length];
+    return `${dialogue.speaker}：${dialogue.line}`;
+  }
+
+  if (isZh) {
+    return shotIndex % 3 === 0 ? '（无对白）' : '角色对白内容';
+  } else {
+    return shotIndex % 3 === 0 ? '(No dialogue)' : 'Character dialogue';
+  }
+}
