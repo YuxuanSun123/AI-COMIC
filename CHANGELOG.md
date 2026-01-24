@@ -7,6 +7,62 @@
 
 ---
 
+## [2.5.0] - 2026-01-19
+
+### 新增 (Added)
+
+#### 剧本生成器完整工作流
+- 实现真实的剧本生成工作流（#/tools/script）
+- 左栏：题材类型选择、语言选择（中/英）、来源作品选择（载入已有剧本）
+- 中栏：作者输入表单（logline、world、characters、constraints）+ 生成按钮 + 结果编辑器
+- 右栏：参数面板（length_level、pace、temperature、style_tag）+ 统计信息
+- 角色管理：可增删角色，每个角色包含name/traits/relation三个字段
+- 生成按钮：调用AI客户端生成剧本（默认使用mock）
+- 结果编辑器：生成后可手动编辑剧本文字
+- 操作按钮：保存、另存为、生成分镜（跳转到分镜生成器）
+
+#### AI客户端模块
+- 创建aiClient模块（src/lib/aiClient.ts）
+- 预留真实API接口（USE_REAL_API=false，默认关闭）
+- generateScript方法：接收payload，返回剧本生成结果
+- 预留其他方法：generateStoryboard、generateVideoCards、generateEditPlan（暂未实现）
+- API约定：POST /api/generate/script，返回{ok, data/error}
+
+#### Mock生成器
+- 创建mockGenerator模块（src/lib/mockGenerator.ts）
+- mockGenerateScript方法：根据genre+style_tag生成不同风格剧本
+- 至少生成3个scenes，包含dialogues/actions/camera_suggestions
+- 输出长度受length_level控制（short 500-800字，mid 800-1500字，long 1500-2500字）
+- 支持中英文：lang=en时dialogues和描述为英文
+
+#### 固化数据结构（用于工具联动）
+- 定义EnhancedScriptContent类型（works.content for type=script）
+- 包含：genre、lang、logline、world、characters[]、constraints、params、script_text、scenes[]、updated_from
+- script_text：完整剧本文字（供编辑器展示和导出）
+- scenes[]：结构化场景列表（供分镜生成器使用）
+- updated_from.source_script_id：来源剧本ID（若从旧作品载入）
+
+#### 工具联动入口
+- "生成分镜"按钮：跳转到#/tools/storyboard
+- 使用localStorage传递source_script_id（last_source_script_id）
+- 分镜生成器可自动选中该剧本作为输入来源
+
+### 优化 (Improved)
+
+#### 类型定义增强
+- 添加Character类型：name、traits、relation
+- 添加ScriptParams类型：length_level、pace、temperature、style_tag
+- 添加EnhancedScene类型：scene_no、location、summary、dialogues、actions、camera_suggestions
+- Work类型支持EnhancedScriptContent
+
+#### 用户体验优化
+- 来源作品选择：下拉列表仅显示当前用户的剧本作品
+- 角色管理：可视化增删改，每个角色独立卡片
+- 生成状态：loading状态显示，错误提示友好
+- 统计信息：显示场景数、角色数、字数
+
+---
+
 ## [2.4.3] - 2026-01-19
 
 ### 优化 (Improved)

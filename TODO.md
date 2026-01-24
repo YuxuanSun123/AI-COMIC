@@ -102,6 +102,26 @@
 - [ ] 邮箱唯一性验证增强
 - [ ] 密码规则验证增强
 
+## v2.5.0 剧本生成器完整工作流（2026-01-19）
+- [x] 创建AI客户端模块（aiClient.ts）
+- [x] 创建Mock生成器模块（mockGenerator.ts）
+- [x] 预留真实API接口（默认关闭，USE_REAL_API=false）
+- [x] 固化数据结构（EnhancedScriptContent）
+- [x] 重写剧本生成器UI（三栏布局）
+- [x] 左栏：题材类型、语言选择、来源作品选择
+- [x] 中栏：作者输入表单（logline、world、characters、constraints）
+- [x] 中栏：生成按钮 + 结果编辑器 + 操作按钮
+- [x] 右栏：参数面板（length_level、pace、temperature、style_tag）
+- [x] 角色管理：可增删改，每个角色包含name/traits/relation
+- [x] 生成逻辑：组装payload → 调用aiClient → 落地为标准结构
+- [x] 保存功能：保存、另存为
+- [x] 工具联动：生成分镜按钮（跳转到分镜生成器）
+- [x] Mock生成器：根据genre+style_tag生成不同风格
+- [x] Mock生成器：至少3个scenes，支持中英文
+- [x] Mock生成器：长度受length_level控制
+- [x] 类型定义：Character、ScriptParams、EnhancedScene
+- [x] 统计信息：场景数、角色数、字数
+
 ## v2.4.3 布局优化（2026-01-19）
 - [x] 移除分镜生成器左侧面板（无实际功能，浪费空间）
 - [x] 移除镜头卡左侧面板（无实际功能，浪费空间）
@@ -188,3 +208,4 @@
 ✅ v2.4 后台管理系统完成，支持API配置、系统设置、数据管理！
 ✅ v2.4.2 UI统一优化完成，所有工具页面样式一致，用户体验连贯！
 ✅ v2.4.3 布局优化完成，移除无用左侧面板，内容区域更宽敞！
+✅ v2.5.0 剧本生成器完整工作流完成，支持AI生成、工具联动、数据固化！

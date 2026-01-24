@@ -50,12 +50,9 @@ export default function ScriptGenerator() {
   const [loading, setLoading] = useState(false);
 
   // 获取所有剧本作品（用于来源选择）
-  const allWorks = tableApi.get('works') as Work[] | Work | null;
-  const scriptWorks = Array.isArray(allWorks)
-    ? allWorks
-        .filter(w => w.type === 'script' && w.author_id === currentUser?.id)
-        .sort((a, b) => b.updated_ms - a.updated_ms)
-    : [];
+  const scriptWorks = (tableApi.get<Work[]>('works') as Work[])
+    .filter(w => w.type === 'script' && w.author_id === currentUser?.id)
+    .sort((a, b) => b.updated_ms - a.updated_ms);
 
   useEffect(() => {
     document.title = `${t.scriptGenerator} - ${t.appTitle}`;
@@ -291,7 +288,6 @@ export default function ScriptGenerator() {
     toast({ title: '正在跳转到分镜生成器...' });
   };
 
-  // 题材选项
   const genres = [
     { value: 'romance', label: t.romance },
     { value: 'scifi', label: t.scifi },
@@ -301,296 +297,287 @@ export default function ScriptGenerator() {
     { value: 'thriller', label: t.thriller }
   ];
 
-  // 风格标签选项
-  const styleTags = language === 'zh'
-    ? ['国漫', '赛博', '热血', '恋爱喜剧', '悬疑推理', '科幻未来']
-    : ['Chinese Style', 'Cyberpunk', 'Hot-blooded', 'Rom-Com', 'Mystery', 'Sci-Fi'];
+  // 本地模拟生成剧本
+  const generateScript = () => {
+    if (!currentUser) {
+      toast({
+        title: t.pleaseLogin,
+        variant: 'destructive'
+      });
+      return;
+    }
 
-  // 左栏：题材、语言、来源作品选择
+    if (!storyPrompt) {
+      toast({
+        title: t.fieldRequired,
+        description: '请输入故事提示',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    // 模拟生成延迟
+    setTimeout(() => {
+      const mockScript: ScriptContent = {
+        acts: [
+          {
+            act_number: 1,
+            scenes: [
+              {
+                scene_number: 1,
+                location: language === 'zh' ? '场景地点' : 'Scene Location',
+                characters: characters ? characters.split(',').map(c => c.trim()) : ['角色A', '角色B'],
+                dialogues: [
+                  {
+                    speaker: characters ? characters.split(',')[0].trim() : '角色A',
+                    line: language === 'zh' 
+                      ? `基于您的故事提示：${storyPrompt}` 
+                      : `Based on your story prompt: ${storyPrompt}`
+                  },
+                  {
+                    speaker: characters ? characters.split(',')[1]?.trim() || '角色B' : '角色B',
+                    line: language === 'zh'
+                      ? '这是一个模拟生成的对话内容'
+                      : 'This is a simulated dialogue content'
+                  }
+                ],
+                actions: [
+                  language === 'zh' ? '角色进行动作描述' : 'Character performs action',
+                  language === 'zh' ? '场景氛围变化' : 'Scene atmosphere changes'
+                ],
+                camera_suggestions: language === 'zh' 
+                  ? '中景镜头，展现人物互动' 
+                  : 'Medium shot, showing character interaction'
+              }
+            ]
+          }
+        ]
+      };
+
+      setScriptContent(JSON.stringify(mockScript, null, 2));
+      setLoading(false);
+      
+      toast({
+        title: language === 'zh' ? '生成成功' : 'Generated successfully'
+      });
+    }, 2000);
+  };
+
+  const saveScript = () => {
+    if (!currentUser) {
+      toast({
+        title: t.pleaseLogin,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!title || !scriptContent) {
+      toast({
+        title: t.fieldRequired,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const content = JSON.parse(scriptContent);
+      
+      const id = searchParams.get('id');
+      
+      if (id) {
+        // 更新现有作品
+        const result = tableApi.patch<Work>('works', id, {
+          title,
+          content,
+          updated_ms: Date.now()
+        });
+        
+        if ('code' in result) {
+          toast({
+            title: t.operationFailed,
+            description: result.message,
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: t.saveSuccess
+          });
+        }
+      } else {
+        // 创建新作品
+        const newWork: Omit<Work, 'id'> = {
+          type: 'script',
+          title,
+          content,
+          author_id: currentUser.id,
+          lang: language,
+          created_ms: Date.now(),
+          updated_ms: Date.now()
+        };
+        
+        const result = tableApi.post<Work>('works', newWork);
+        
+        if ('code' in result) {
+          toast({
+            title: t.operationFailed,
+            description: result.message,
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: t.saveSuccess
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: t.operationFailed,
+        description: 'JSON格式错误',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const leftPanel = (
     <div className="space-y-6">
       <div>
-        <Label className="font-semibold text-foreground mb-3 block">题材类型</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.selectGenre}</Label>
         <Select value={genre} onValueChange={setGenre}>
-          <SelectTrigger className="bg-background border-2 border-border">
+          <SelectTrigger className="w-full bg-background border-2 border-border hover:border-primary/50 transition-colors">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-card border-border">
             {genres.map(g => (
               <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">语言</Label>
-        <Select value={selectedLang} onValueChange={(v) => setSelectedLang(v as 'zh' | 'en')}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="zh">中文</SelectItem>
-            <SelectItem value="en">English</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">来源作品（可选）</Label>
-        <Select value={sourceWorkId || 'none'} onValueChange={(v) => v !== 'none' && loadFromSource(v)}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue placeholder="选择已有剧本..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">无</SelectItem>
-            {scriptWorks.map(work => (
-              <SelectItem key={work.id} value={work.id}>{work.title}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-2">
-          选择后将载入该作品的设定
-        </p>
-      </div>
     </div>
   );
 
-  // 中栏：作者输入表单 + 生成按钮 + 结果编辑器
   const centerPanel = (
     <div className="space-y-6">
-      {/* 作品标题 */}
       <div>
-        <Label className="font-semibold text-foreground mb-3 block">作品标题</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.workTitle}</Label>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="请输入作品标题..."
+          placeholder={t.workTitle}
           className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
         />
       </div>
-
-      {/* 故事概述 */}
       <div>
-        <Label className="font-semibold text-foreground mb-3 block">故事概述（Logline）</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.storyPrompt}</Label>
         <Textarea
-          value={logline}
-          onChange={(e) => setLogline(e.target.value)}
-          placeholder="用一句话概括你的故事..."
+          value={storyPrompt}
+          onChange={(e) => setStoryPrompt(e.target.value)}
+          placeholder="描述您的故事创意..."
+          rows={4}
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
+        />
+      </div>
+      <div>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.characters} <span className="text-muted-foreground font-normal">(逗号分隔)</span></Label>
+        <Input
+          value={characters}
+          onChange={(e) => setCharacters(e.target.value)}
+          placeholder="角色1, 角色2"
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors h-11"
+        />
+      </div>
+      <div>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.worldview}</Label>
+        <Textarea
+          value={worldview}
+          onChange={(e) => setWorldview(e.target.value)}
+          placeholder="描述故事的世界观设定..."
           rows={3}
           className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
         />
       </div>
-
-      {/* 世界观设定 */}
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">世界观/设定</Label>
+      
+      <div className="pt-2">
+        <Button 
+          onClick={generateScript} 
+          disabled={loading} 
+          className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary via-secondary to-accent hover:opacity-90 transition-opacity shadow-lg"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              {t.loading}
+            </>
+          ) : (
+            t.generateScript
+          )}
+        </Button>
+      </div>
+      
+      <div className="pt-4">
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{t.scriptInput}</Label>
         <Textarea
-          value={world}
-          onChange={(e) => setWorld(e.target.value)}
-          placeholder="描述故事发生的世界、背景、时代..."
-          rows={3}
-          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
+          value={scriptContent}
+          onChange={(e) => setScriptContent(e.target.value)}
+          placeholder="生成的剧本内容将显示在这里..."
+          rows={16}
+          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors font-mono text-sm resize-none"
         />
       </div>
-
-      {/* 角色列表 */}
-      <div>
-        <div className="flex justify-between items-center mb-3">
-          <Label className="font-semibold text-foreground text-lg">角色列表</Label>
-          <Button onClick={addCharacter} size="sm" variant="outline" className="border-2 border-border hover:border-primary/50">
-            <Plus className="h-4 w-4 mr-1" />
-            添加角色
-          </Button>
-        </div>
-
-        {characters.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            暂无角色，点击"添加角色"开始创建
-          </p>
-        )}
-
-        {characters.map((char, index) => (
-          <Card key={index} className="p-4 mb-4 bg-muted/50 border-2 border-border">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="font-semibold text-foreground">角色 {index + 1}</Label>
-                <Button size="sm" variant="ghost" onClick={() => deleteCharacter(index)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <Input
-                placeholder="角色名"
-                value={char.name}
-                onChange={(e) => updateCharacter(index, 'name', e.target.value)}
-                className="bg-background border-2 border-border h-10"
-              />
-              <Input
-                placeholder="性格特征"
-                value={char.traits}
-                onChange={(e) => updateCharacter(index, 'traits', e.target.value)}
-                className="bg-background border-2 border-border h-10"
-              />
-              <Input
-                placeholder="关系/身份"
-                value={char.relation}
-                onChange={(e) => updateCharacter(index, 'relation', e.target.value)}
-                className="bg-background border-2 border-border h-10"
-              />
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* 约束条件 */}
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">约束条件（可选）</Label>
-        <Textarea
-          value={constraints}
-          onChange={(e) => setConstraints(e.target.value)}
-          placeholder="禁忌内容、必须出现的元素等..."
-          rows={2}
-          className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors resize-none"
-        />
-      </div>
-
-      {/* 生成按钮 */}
-      <Button
-        onClick={handleGenerate}
-        disabled={loading}
-        className="w-full h-12 bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+      
+      <Button 
+        onClick={saveScript} 
+        className="w-full h-11 font-semibold bg-primary hover:bg-primary/90 transition-colors"
       >
-        {loading ? (
-          <>
-            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            生成中...
-          </>
-        ) : (
-          '生成剧本'
-        )}
+        {t.save}
       </Button>
-
-      {/* 结果编辑器 */}
-      {scriptText && (
-        <div>
-          <Label className="font-semibold text-foreground mb-3 block">生成结果（可编辑）</Label>
-          <Textarea
-            value={scriptText}
-            onChange={(e) => setScriptText(e.target.value)}
-            rows={20}
-            className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors font-mono text-sm"
-          />
-        </div>
-      )}
-
-      {/* 操作按钮 */}
-      {scriptText && (
-        <div className="flex gap-3">
-          <Button
-            onClick={handleSave}
-            className="flex-1 h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            保存
-          </Button>
-          <Button
-            onClick={handleSaveAs}
-            variant="outline"
-            className="flex-1 h-11 border-2 border-border hover:border-primary/50"
-          >
-            <FilePlus className="h-4 w-4 mr-2" />
-            另存为
-          </Button>
-          <Button
-            onClick={handleGenerateStoryboard}
-            variant="outline"
-            className="flex-1 h-11 border-2 border-border hover:border-primary/50"
-          >
-            <Film className="h-4 w-4 mr-2" />
-            生成分镜
-          </Button>
-        </div>
-      )}
     </div>
   );
 
-  // 右栏：参数面板
   const rightPanel = (
-    <div className="space-y-6">
-      {/* 长度级别 */}
+    <div className="space-y-8">
       <div>
-        <Label className="font-semibold text-foreground mb-3 block">长度级别</Label>
-        <Select value={lengthLevel} onValueChange={(v) => setLengthLevel(v as 'short' | 'mid' | 'long')}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="short">短篇（500-800字）</SelectItem>
-            <SelectItem value="mid">中篇（800-1500字）</SelectItem>
-            <SelectItem value="long">长篇（1500-2500字）</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* 节奏 */}
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">节奏</Label>
-        <Select value={pace} onValueChange={(v) => setPace(v as 'slow' | 'mid' | 'fast')}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="slow">慢节奏</SelectItem>
-            <SelectItem value="mid">中等节奏</SelectItem>
-            <SelectItem value="fast">快节奏</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* 温度 */}
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">
-          创意度：{temperature.toFixed(1)}
+        <Label className="text-sm font-semibold text-foreground mb-4 block flex items-center justify-between">
+          <span>{t.length}</span>
+          <span className="text-primary font-bold">{length[0]}%</span>
         </Label>
         <Slider
-          value={[temperature * 100]}
-          onValueChange={(v) => setTemperature(v[0] / 100)}
-          min={0}
+          value={length}
+          onValueChange={setLength}
           max={100}
           step={10}
-          className="my-4"
+          className="mt-2"
         />
-        <p className="text-xs text-muted-foreground">
-          数值越高，生成内容越有创意
-        </p>
       </div>
-
-      {/* 风格标签 */}
       <div>
-        <Label className="font-semibold text-foreground mb-3 block">风格标签</Label>
-        <Select value={styleTag} onValueChange={setStyleTag}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {styleTags.map(tag => (
-              <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label className="text-sm font-semibold text-foreground mb-4 block flex items-center justify-between">
+          <span>{t.pace}</span>
+          <span className="text-primary font-bold">{pace[0]}%</span>
+        </Label>
+        <Slider
+          value={pace}
+          onValueChange={setPace}
+          max={100}
+          step={10}
+          className="mt-2"
+        />
       </div>
-
-      {/* 统计信息 */}
-      {generatedContent && (
-        <div className="p-4 bg-muted/50 rounded-lg border-2 border-border">
-          <Label className="font-semibold text-foreground mb-2 block">统计信息</Label>
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <p>场景数：<span className="text-primary font-semibold">{generatedContent.scenes.length}</span></p>
-            <p>角色数：<span className="text-primary font-semibold">{generatedContent.characters.length}</span></p>
-            <p>字数：<span className="text-primary font-semibold">{scriptText.length}</span></p>
-          </div>
-        </div>
-      )}
+      <div>
+        <Label className="text-sm font-semibold text-foreground mb-4 block flex items-center justify-between">
+          <span>{t.temperature}</span>
+          <span className="text-primary font-bold">{temperature[0]}%</span>
+        </Label>
+        <Slider
+          value={temperature}
+          onValueChange={setTemperature}
+          max={100}
+          step={10}
+          className="mt-2"
+        />
+      </div>
     </div>
   );
 
