@@ -7,6 +7,46 @@
 
 ---
 
+## [2.9.0] - 2026-01-24
+
+### 新增 (Added)
+
+#### 多API接入架构
+- **Providers管理**：统一管理多个API服务提供商（LLM、Image、TTS、ASR）
+  - 支持同时配置多个Provider（OpenAI、DeepSeek、Azure OpenAI、本地LLM等）
+  - 每个Provider包含：名称、类型、Base URL、API Key、默认模型、自定义Headers
+  - 支持启用/禁用、新增/编辑/删除/复制Provider
+  - 提供"测试连接"功能，显示延迟和错误信息
+  - API Key密文显示，支持显示/隐藏切换
+
+- **功能路由配置**：为每个功能点配置使用的Provider和参数
+  - 支持6个功能点：剧本生成、分镜生成、镜头卡生成、剪辑计划生成、分镜图生成、镜头图生成
+  - 每个功能点可独立配置：Provider选择、模型名称、输出格式（JSON/Markdown）
+  - 高级参数配置：Temperature、Max Tokens、Top P（可折叠）
+  - 支持Fallback机制：主Provider失败时自动切换到备用Provider
+  - 按Provider类型过滤：LLM功能只显示LLM Provider，Image功能只显示Image Provider
+
+- **统一生成接口**：aiClient.generate(taskType, payload)
+  - 根据路由配置自动选择Provider和模型
+  - 支持Fallback机制，提高可用性
+  - 未配置时自动回退到原有的本地模拟生成器
+  - 预留文生图能力接口（image_storyboard、image_shot）
+
+#### 数据结构
+- 新增类型定义：ApiProvider、ApiRouting、FunctionRouting、ProviderType、TaskType、OutputFormat、RoutingParams、ProviderTestResult
+- localStorage存储：api_providers（Provider列表）、api_routing（路由配置）
+- 完整的TypeScript类型支持，确保类型安全
+
+### 改进 (Changed)
+
+#### 后台管理页面重构
+- 将"API配置"拆分为两个Tab：Providers管理、功能路由
+- 响应式卡片布局，支持桌面和移动端
+- 统一的UI风格：卡片、分区标题、保存按钮、测试按钮、成功/失败Toast
+- 保留原有的数据管理、用户管理、内容管理Tab（待开发）
+
+---
+
 ## [2.8.1] - 2026-01-24
 
 ### 修复 (Fixed)

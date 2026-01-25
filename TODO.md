@@ -102,6 +102,33 @@
 - [ ] 邮箱唯一性验证增强
 - [ ] 密码规则验证增强
 
+## v2.9.0 多API接入架构（2026-01-24）
+- [x] 新增数据结构类型定义（ApiProvider、ApiRouting、FunctionRouting等）
+- [x] 实现aiClient.generate统一生成方法
+- [x] 实现aiClient.testProvider测试连接方法
+- [x] 实现callProvider调用Provider方法
+- [x] 实现fallbackToLegacyMethod回退方法
+- [x] 实现Fallback机制（主Provider失败自动切换备用）
+- [x] 重写Admin.tsx实现Providers管理Tab
+- [x] 实现Provider列表展示（卡片布局）
+- [x] 实现Provider新增/编辑/删除/复制功能
+- [x] 实现Provider启用/禁用开关
+- [x] 实现Provider测试连接功能
+- [x] 实现API Key密文显示/隐藏切换
+- [x] 实现功能路由配置Tab
+- [x] 实现6个功能点的路由配置（剧本/分镜/镜头卡/剪辑/分镜图/镜头图）
+- [x] 实现Provider选择（按类型过滤）
+- [x] 实现模型名称配置
+- [x] 实现输出格式选择（JSON/Markdown）
+- [x] 实现Fallback Provider选择
+- [x] 实现高级参数配置（Temperature/Max Tokens/Top P）
+- [x] 实现参数折叠/展开功能
+- [x] 实现配置保存到localStorage
+- [x] 通过Lint检查（106文件，0错误）
+- [ ] TODO：更新四个工具页面使用统一的aiClient.generate方法
+- [ ] TODO：在分镜和镜头卡页面添加"生成概念图"按钮
+- [ ] TODO：实现文生图功能的UI和联动
+
 ## v2.8.1 导航菜单修复（2026-01-24）
 - [x] 修复导航菜单中后台管理链接无法点击的问题
 - [x] 添加NavItem类型定义（path为可选属性）
@@ -303,4 +330,6 @@
 ✅ v2.7.0 镜头卡生成器完整联动工作流完成，支持从分镜生成镜头卡、Prompt结构、工具联动！
 ✅ v2.8.0 剪辑合成完整联动工作流完成，支持从镜头卡生成剪辑清单、时长分配、转场规则、导出功能！
 ✅ v2.8.1 导航菜单修复完成，后台管理链接现在可以正常访问！
+✅ v2.9.0 多API接入架构完成，支持Providers管理、功能路由配置、统一生成接口、Fallback机制！
 ✅ 完整数据流水线：Script → Storyboard → Video Cards → Edit Plan，端到端闭环！
+✅ 多API接入架构：Providers管理 + 功能路由 + 统一生成接口，支持多服务商并存！

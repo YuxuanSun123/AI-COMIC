@@ -291,3 +291,65 @@ export interface ApiError {
   code: number;
   message: string;
 }
+
+// ============================================
+// 多API接入结构类型定义
+// ============================================
+
+// Provider类型
+export type ProviderType = 'llm' | 'image' | 'tts' | 'asr';
+
+// API Provider（服务提供商）
+export interface ApiProvider {
+  id: string; // 唯一标识
+  name: string; // 自定义名称，如 "OpenAI-主用"
+  type: ProviderType; // 类型：llm/image/tts/asr
+  enabled: boolean; // 是否启用
+  base_url: string; // API Base URL
+  api_key: string; // API Key
+  default_model: string; // 默认模型名
+  headers_json?: string; // 自定义Headers（JSON字符串）
+  created_ms: number; // 创建时间
+  updated_ms: number; // 更新时间
+}
+
+// 任务类型
+export type TaskType = 'script' | 'storyboard' | 'video_cards' | 'edit_plan' | 'image_storyboard' | 'image_shot';
+
+// 输出格式
+export type OutputFormat = 'json' | 'md';
+
+// 路由参数
+export interface RoutingParams {
+  temperature: number; // 温度（0-1）
+  max_tokens: number; // 最大token数
+  top_p: number; // Top P（0-1）
+}
+
+// 功能路由配置
+export interface FunctionRouting {
+  enabled: boolean; // 是否启用
+  provider_id: string; // Provider ID
+  model: string; // 模型名
+  output_format: OutputFormat; // 输出格式
+  params: RoutingParams; // 参数
+  fallback_provider_id?: string; // 备用Provider ID（可选）
+}
+
+// API路由配置（所有功能的路由）
+export interface ApiRouting {
+  script: FunctionRouting; // 剧本生成
+  storyboard: FunctionRouting; // 分镜生成
+  video_cards: FunctionRouting; // 镜头卡生成
+  edit_plan: FunctionRouting; // 剪辑计划生成
+  image_storyboard: FunctionRouting; // 分镜图生成
+  image_shot: FunctionRouting; // 镜头图生成
+}
+
+// Provider测试结果
+export interface ProviderTestResult {
+  success: boolean; // 是否成功
+  latency?: number; // 延迟（毫秒）
+  error?: string; // 错误信息
+  message?: string; // 成功消息
+}

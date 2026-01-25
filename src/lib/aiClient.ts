@@ -382,9 +382,297 @@ export async function generateEditPlan(
   }
 }
 
+/**
+ * ============================================
+ * 多API接入统一方法
+ * ============================================
+ */
+
+import type { ApiProvider, TaskType, ProviderTestResult } from '@/types';
+
+/**
+ * 统一生成方法 - 根据任务类型和路由配置调用相应的Provider
+ * @param taskType 任务类型
+ * @param payload 生成参数
+ * @returns 生成结果
+ */
+export async function generate(taskType: TaskType, payload: unknown): Promise<ApiResponse<unknown>> {
+  // 读取API路由配置
+  const routingConfig = localStorage.getItem('api_routing');
+  if (!routingConfig) {
+    // 没有配置，回退到原有方法
+    return fallbackToLegacyMethod(taskType, payload);
+  }
+
+  try {
+    const routing = JSON.parse(routingConfig);
+    const taskRouting = routing[taskType];
+
+    // 检查是否启用
+    if (!taskRouting || !taskRouting.enabled) {
+      return fallbackToLegacyMethod(taskType, payload);
+    }
+
+    // 读取Provider配置
+    const providersConfig = localStorage.getItem('api_providers');
+    if (!providersConfig) {
+      return fallbackToLegacyMethod(taskType, payload);
+    }
+
+    const providers: ApiProvider[] = JSON.parse(providersConfig);
+    const provider = providers.find(p => p.id === taskRouting.provider_id && p.enabled);
+
+    if (!provider) {
+      // Provider不存在或未启用，尝试fallback
+      if (taskRouting.fallback_provider_id) {
+        const fallbackProvider = providers.find(p => p.id === taskRouting.fallback_provider_id && p.enabled);
+        if (fallbackProvider) {
+          return callProvider(fallbackProvider, taskType, taskRouting.model, payload);
+        }
+      }
+      // 没有可用Provider，回退到原有方法
+      return fallbackToLegacyMethod(taskType, payload);
+    }
+
+    // 调用Provider
+    try {
+      return await callProvider(provider, taskType, taskRouting.model, payload);
+    } catch (error) {
+      // 主Provider失败，尝试fallback
+      if (taskRouting.fallback_provider_id) {
+        const fallbackProvider = providers.find(p => p.id === taskRouting.fallback_provider_id && p.enabled);
+        if (fallbackProvider) {
+          console.warn(`主Provider失败，尝试fallback: ${fallbackProvider.name}`);
+          return await callProvider(fallbackProvider, taskType, taskRouting.model, payload);
+        }
+      }
+      throw error;
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: 'GENERATE_ERROR',
+        message: error instanceof Error ? error.message : '生成失败'
+      }
+    };
+  }
+}
+
+/**
+ * 调用Provider生成内容
+ */
+async function callProvider(
+  provider: ApiProvider,
+  taskType: TaskType,
+  model: string,
+  payload: unknown
+): Promise<ApiResponse<unknown>> {
+  // 构建请求
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${provider.api_key}`
+  };
+
+  // 添加自定义headers
+  if (provider.headers_json) {
+    try {
+      const customHeaders = JSON.parse(provider.headers_json);
+      Object.assign(headers, customHeaders);
+    } catch (e) {
+      console.warn('自定义headers解析失败:', e);
+    }
+  }
+
+  // 根据Provider类型构建请求体
+  let requestBody: unknown;
+  if (provider.type === 'llm') {
+    // LLM类型：构建标准的OpenAI格式请求
+    requestBody = {
+      model: model || provider.default_model,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个专业的AI漫剧创作助手。'
+        },
+        {
+          role: 'user',
+          content: JSON.stringify(payload)
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000
+    };
+  } else if (provider.type === 'image') {
+    // Image类型：构建文生图请求
+    requestBody = {
+      prompt: JSON.stringify(payload),
+      model: model || provider.default_model,
+      n: 1,
+      size: '1024x1024'
+    };
+  }
+
+  // 发送请求
+  const response = await fetch(`${provider.base_url}/chat/completions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Provider请求失败: ${response.status} ${response.statusText}`);
+  }
+
+  const result = await response.json();
+
+  // 解析响应
+  if (provider.type === 'llm') {
+    const content = result.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('Provider响应格式错误');
+    }
+
+    // 尝试解析JSON
+    try {
+      const data = JSON.parse(content);
+      return { ok: true, data };
+    } catch (e) {
+      // 如果不是JSON，直接返回文本
+      return { ok: true, data: { text: content } };
+    }
+  } else if (provider.type === 'image') {
+    const imageUrl = result.data?.[0]?.url;
+    if (!imageUrl) {
+      throw new Error('Provider响应格式错误');
+    }
+    return { ok: true, data: { image_url: imageUrl } };
+  }
+
+  return { ok: false, error: { code: 'UNKNOWN_TYPE', message: '未知的Provider类型' } };
+}
+
+/**
+ * 回退到原有方法
+ */
+async function fallbackToLegacyMethod(taskType: TaskType, payload: unknown): Promise<ApiResponse<unknown>> {
+  switch (taskType) {
+    case 'script':
+      return generateScript(payload as GenerateScriptPayload);
+    case 'storyboard':
+      return generateStoryboard(payload as GenerateStoryboardPayload);
+    case 'video_cards':
+      return generateVideoCards(payload as GenerateVideoCardsPayload);
+    case 'edit_plan':
+      return generateEditPlan(payload as GenerateEditPlanPayload);
+    default:
+      return {
+        ok: false,
+        error: {
+          code: 'UNSUPPORTED_TASK',
+          message: '不支持的任务类型'
+        }
+      };
+  }
+}
+
+/**
+ * 测试Provider连接
+ * @param provider Provider配置
+ * @returns 测试结果
+ */
+export async function testProvider(provider: ApiProvider): Promise<ProviderTestResult> {
+  const startTime = Date.now();
+
+  try {
+    // 构建测试请求
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${provider.api_key}`
+    };
+
+    // 添加自定义headers
+    if (provider.headers_json) {
+      try {
+        const customHeaders = JSON.parse(provider.headers_json);
+        Object.assign(headers, customHeaders);
+      } catch (e) {
+        return {
+          success: false,
+          error: '自定义headers格式错误'
+        };
+      }
+    }
+
+    // 根据Provider类型构建测试请求
+    let endpoint = '';
+    let requestBody: unknown;
+
+    if (provider.type === 'llm') {
+      endpoint = '/chat/completions';
+      requestBody = {
+        model: provider.default_model,
+        messages: [
+          {
+            role: 'user',
+            content: 'Hello'
+          }
+        ],
+        max_tokens: 10
+      };
+    } else if (provider.type === 'image') {
+      endpoint = '/images/generations';
+      requestBody = {
+        prompt: 'test',
+        model: provider.default_model,
+        n: 1,
+        size: '256x256'
+      };
+    } else {
+      return {
+        success: false,
+        error: '暂不支持该Provider类型的测试'
+      };
+    }
+
+    // 发送测试请求
+    const response = await fetch(`${provider.base_url}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody)
+    });
+
+    const latency = Date.now() - startTime;
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        latency,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    return {
+      success: true,
+      latency,
+      message: `连接成功！延迟: ${latency}ms`
+    };
+  } catch (error) {
+    const latency = Date.now() - startTime;
+    return {
+      success: false,
+      latency,
+      error: error instanceof Error ? error.message : '连接失败'
+    };
+  }
+}
+
 export default {
   generateScript,
   generateStoryboard,
   generateVideoCards,
-  generateEditPlan
+  generateEditPlan,
+  generate,
+  testProvider
 };
