@@ -1,12 +1,15 @@
 // 首页 - 创作工坊
 
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ToolCard from '@/components/common/ToolCard';
-import { FileText, Film, Video, Scissors } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, Film, Video, Scissors, Settings } from 'lucide-react';
 
 export default function Home() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = `${t.studio} - ${t.appTitle}`;
@@ -56,6 +59,35 @@ export default function Home() {
         {tools.map((tool) => (
           <ToolCard key={tool.path} {...tool} />
         ))}
+      </div>
+
+      {/* 后台管理入口 - 调试模式 */}
+      <div className="mt-12 max-w-6xl mx-auto">
+        <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-pink-500/10 border-2 border-primary/20 rounded-xl p-8">
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Settings className="h-8 w-8 text-primary" />
+              </div>
+              <div className="text-center xl:text-left">
+                <h3 className="text-xl font-bold text-foreground mb-2">
+                  后台管理
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  配置系统参数、API设置、数据管理等
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => navigate('/admin')}
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all px-8 h-12"
+            >
+              <Settings className="h-5 w-5 mr-2" />
+              进入后台管理
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* 介绍文本 */}

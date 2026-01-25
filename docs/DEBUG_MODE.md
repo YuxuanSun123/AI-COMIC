@@ -66,13 +66,58 @@ if (currentUser) {
 */
 ```
 
+### 3. 主页访问按钮
+**文件**：`src/pages/Home.tsx`
+
+**状态**：✅ 已添加后台管理访问按钮
+
+**代码位置**：第61-85行
+
+```tsx
+{/* 后台管理入口 - 调试模式 */}
+<div className="mt-12 max-w-6xl mx-auto">
+  <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-pink-500/10 border-2 border-primary/20 rounded-xl p-8">
+    <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Settings className="h-8 w-8 text-primary" />
+        </div>
+        <div className="text-center xl:text-left">
+          <h3 className="text-xl font-bold text-foreground mb-2">
+            后台管理
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            配置系统参数、API设置、数据管理等
+          </p>
+        </div>
+      </div>
+      <Button
+        onClick={() => navigate('/admin')}
+        size="lg"
+        className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all px-8 h-12"
+      >
+        <Settings className="h-5 w-5 mr-2" />
+        进入后台管理
+      </Button>
+    </div>
+  </div>
+</div>
+```
+
 ## 调试模式特性
 
 ### ✅ 可以做的事情
 1. **直接访问后台管理页面**：无需登录，直接访问 `/admin` 路径
-2. **查看所有配置选项**：API配置、系统设置、数据管理、用户管理、内容管理
-3. **修改配置参数**：可以修改并保存各种配置（保存在localStorage）
-4. **测试功能**：测试后台管理的所有功能
+2. **主页快速访问**：在主页点击"进入后台管理"按钮，直接跳转
+3. **导航栏访问**：在顶部导航栏点击"后台管理"链接
+4. **查看所有配置选项**：API配置、系统设置、数据管理、用户管理、内容管理
+5. **修改配置参数**：可以修改并保存各种配置（保存在localStorage）
+6. **测试功能**：测试后台管理的所有功能
+
+### 🚀 访问方式（三种）
+1. **主页按钮**：访问主页（/），点击"进入后台管理"按钮（推荐）
+2. **导航栏链接**：在顶部导航栏点击"后台管理"链接
+3. **直接访问**：在浏览器地址栏输入 `/#/admin`
 
 ### ⚠️ 注意事项
 1. **数据持久化**：配置保存在浏览器的localStorage中，清除浏览器数据会丢失
@@ -145,13 +190,54 @@ if (currentUser) {
 }
 ```
 
-### 步骤3：验证安全性
+### 步骤3：移除或隐藏Home.tsx的后台管理按钮
+
+**文件**：`src/pages/Home.tsx`
+
+**操作**：删除或注释掉第61-85行的后台管理入口代码
+
+```tsx
+// 删除或注释掉整个后台管理入口区块
+/*
+{/* 后台管理入口 - 调试模式 *\/}
+<div className="mt-12 max-w-6xl mx-auto">
+  <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-pink-500/10 border-2 border-primary/20 rounded-xl p-8">
+    <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Settings className="h-8 w-8 text-primary" />
+        </div>
+        <div className="text-center xl:text-left">
+          <h3 className="text-xl font-bold text-foreground mb-2">
+            后台管理
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            配置系统参数、API设置、数据管理等
+          </p>
+        </div>
+      </div>
+      <Button
+        onClick={() => navigate('/admin')}
+        size="lg"
+        className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all px-8 h-12"
+      >
+        <Settings className="h-5 w-5 mr-2" />
+        进入后台管理
+      </Button>
+    </div>
+  </div>
+</div>
+*/
+```
+
+### 步骤4：验证安全性
 
 部署前验证：
 1. ✅ 未登录用户无法访问 `/admin` 路径
 2. ✅ 未登录用户在导航栏看不到"后台管理"链接
-3. ✅ 直接访问 `/admin` 时显示"需要登录"提示
-4. ✅ 登录后可以正常访问后台管理功能
+3. ✅ 主页不显示后台管理访问按钮
+4. ✅ 直接访问 `/admin` 时显示"需要登录"提示
+5. ✅ 登录后可以正常访问后台管理功能
 
 ## 快速切换脚本
 
