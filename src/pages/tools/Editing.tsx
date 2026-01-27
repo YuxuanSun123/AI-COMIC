@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
-import { generateEditPlan } from '@/lib/aiClient';
+import { generate, type EditPlanGenerationResult, type ApiResponse } from '@/lib/aiClient';
 import type { Work, EnhancedVideoCardsContent, EnhancedEditPlanContent, EnhancedEditItem } from '@/types';
 import ToolLayout from '@/components/layouts/ToolLayout';
 import { Button } from '@/components/ui/button';
@@ -222,7 +222,7 @@ export default function Editing() {
       };
 
       // 调用AI生成
-      const response = await generateEditPlan(payload);
+      const response = await generate('edit_plan', payload) as ApiResponse<EditPlanGenerationResult>;
 
       if (response.ok && response.data) {
         // 计算总时长

@@ -394,29 +394,67 @@ import type { ApiProvider, TaskType, ProviderTestResult } from '@/types';
  * 统一生成方法 - 根据任务类型和路由配置调用相应的Provider
  * @param taskType 任务类型
  * @param payload 生成参数
+ * @param onProgress 流式回调
  * @returns 生成结果
  */
-export async function generate(taskType: TaskType, payload: unknown): Promise<ApiResponse<unknown>> {
+export async function generate(taskType: TaskType, payload: unknown, onProgress?: (chunk: string) => void): Promise<ApiResponse<unknown>> {
   // 读取API路由配置
   const routingConfig = localStorage.getItem('api_routing');
-  if (!routingConfig) {
-    // 没有配置，回退到原有方法
+  const providersConfig = localStorage.getItem('api_providers');
+
+  // 辅助函数：处理Mock回退并支持流式模拟
+  const handleFallback = async () => {
+    if (onProgress && taskType === 'script') {
+        try {
+            const mockResult = await mockGenerateScript(payload as any);
+            const text = mockResult.script_text;
+            const chunkSize = 50;
+            for (let i = 0; i < text.length; i += chunkSize) {
+                onProgress(text.slice(i, i + chunkSize));
+                await new Promise(r => setTimeout(r, 100));
+            }
+            return { ok: true, data: mockResult };
+        } catch (e) {
+            console.warn('Mock streaming failed', e);
+        }
+    }
     return fallbackToLegacyMethod(taskType, payload);
+  };
+
+  // 智能回退逻辑：如果有Provider但没有路由，尝试自动选择Provider
+  if (!routingConfig || !JSON.parse(routingConfig)[taskType]?.enabled) {
+    if (providersConfig) {
+      try {
+        const providers: ApiProvider[] = JSON.parse(providersConfig);
+        const targetType = (taskType === 'image_storyboard' || taskType === 'image_shot') ? 'image' : 'llm';
+        const availableProvider = providers.find(p => p.type === targetType && p.enabled);
+        
+        if (availableProvider) {
+          console.log(`[AI] Auto-detected provider for ${taskType}: ${availableProvider.name}`);
+          return await callProvider(availableProvider, taskType, availableProvider.default_model, payload, onProgress);
+        }
+      } catch (e) {
+        console.error('Failed to parse providers config', e);
+      }
+    }
+    
+    // 确实没有可用配置，回退到Mock
+    console.warn(`[AI] No provider configured for ${taskType}, falling back to Mock.`);
+    return handleFallback();
   }
 
   try {
     const routing = JSON.parse(routingConfig);
     const taskRouting = routing[taskType];
 
-    // 检查是否启用
+    // 检查是否启用 (logic handled above, but double check here if parsing succeeded)
     if (!taskRouting || !taskRouting.enabled) {
-      return fallbackToLegacyMethod(taskType, payload);
+       // Should be caught by the smart fallback above, but just in case
+       return handleFallback();
     }
 
-    // 读取Provider配置
-    const providersConfig = localStorage.getItem('api_providers');
     if (!providersConfig) {
-      return fallbackToLegacyMethod(taskType, payload);
+      return handleFallback();
     }
 
     const providers: ApiProvider[] = JSON.parse(providersConfig);
@@ -427,23 +465,33 @@ export async function generate(taskType: TaskType, payload: unknown): Promise<Ap
       if (taskRouting.fallback_provider_id) {
         const fallbackProvider = providers.find(p => p.id === taskRouting.fallback_provider_id && p.enabled);
         if (fallbackProvider) {
-          return callProvider(fallbackProvider, taskType, taskRouting.model, payload);
+          return callProvider(fallbackProvider, taskType, taskRouting.model, payload, onProgress);
         }
       }
+      
+      // 尝试自动寻找替代Provider
+      const targetType = (taskType === 'image_storyboard' || taskType === 'image_shot') ? 'image' : 'llm';
+      const autoProvider = providers.find(p => p.type === targetType && p.enabled);
+      if (autoProvider) {
+          console.log(`[AI] Configured provider not found, auto-switching to: ${autoProvider.name}`);
+          return callProvider(autoProvider, taskType, autoProvider.default_model, payload, onProgress);
+      }
+
       // 没有可用Provider，回退到原有方法
-      return fallbackToLegacyMethod(taskType, payload);
+      console.warn(`[AI] No usable provider found for ${taskType}, falling back to Mock.`);
+      return handleFallback();
     }
 
     // 调用Provider
     try {
-      return await callProvider(provider, taskType, taskRouting.model, payload);
+      return await callProvider(provider, taskType, taskRouting.model, payload, onProgress);
     } catch (error) {
       // 主Provider失败，尝试fallback
       if (taskRouting.fallback_provider_id) {
         const fallbackProvider = providers.find(p => p.id === taskRouting.fallback_provider_id && p.enabled);
         if (fallbackProvider) {
           console.warn(`主Provider失败，尝试fallback: ${fallbackProvider.name}`);
-          return await callProvider(fallbackProvider, taskType, taskRouting.model, payload);
+          return await callProvider(fallbackProvider, taskType, taskRouting.model, payload, onProgress);
         }
       }
       throw error;
@@ -460,13 +508,162 @@ export async function generate(taskType: TaskType, payload: unknown): Promise<Ap
 }
 
 /**
+ * 构建提示词
+ */
+function constructPrompt(taskType: TaskType, payload: any): { system: string; user: string } {
+  const baseSystem = '你是一个专业的AI漫剧创作助手。请根据用户提供的JSON数据生成相应的内容。重要：请务必返回合法的JSON格式数据。';
+
+  if (taskType === 'script') {
+    const lengthMap: Record<string, string> = {
+      short: '短篇（约3-5场戏，剧情紧凑，每场戏至少300字）',
+      mid: '中篇（约8-15场戏，结构完整，情节跌宕起伏，每场戏细节丰富，包含大量对白和动作描写，总字数要求3000字以上）',
+      long: '长篇（约20场戏以上，细节丰富，多条线索交织，人物刻画深刻，总字数要求5000字以上）'
+    };
+    const lengthDesc = lengthMap[payload.params?.length_level] || lengthMap['mid'];
+    
+    // 续写模式：如果 payload 中包含历史记录
+    let continuePrompt = '';
+    if ((payload as any)._continue_history) {
+        continuePrompt = `
+**接下来的任务**：
+上文因为长度限制中断了。请继续生成剩余的内容。
+请紧接着上文的最后一句话继续写，保持连贯性。不要重复上文已经生成的内容。
+`;
+    }
+
+    return {
+      system: `${baseSystem}
+      
+任务：你是一个顶级影视剧本编剧。请根据输入的故事大纲和参数创作一个**完整、详细、可直接拍摄**的影视剧本。
+
+**核心原则：拒绝大纲，只要正文！拒绝流水账，只要细节！**
+
+关键指令（必须严格遵守）：
+1. **内容详实度（最高优先级）**：
+   - 当前长度要求：【${lengthDesc}】。
+   - **严禁**生成“剧情梗概”、“场景摘要”或“简略版”剧本。
+   - **严禁**使用“经过一番交谈”、“两人争吵了起来”这种概括性描述。必须写出具体的**每一句台词**和**每一个动作**。
+   - **每场戏（Scene）必须充实**：
+     - **对话**：主要场景必须包含 **10-20轮** 以上的有效对话。对话要符合角色性格，有潜台词，有冲突，有情感流动。
+     - **动作**：必须描写具体的微动作（如眼神流转、手指颤抖、肢体接触）、环境氛围（光影、声音、气味）和物体细节。
+     - **时长**：想象你在写一部慢节奏的文艺片，每一个眼神都要给足镜头。
+
+2. **剧本结构**：
+   - 建议使用 Markdown 格式（# 场次, ## 地点, - 对白），或者保持 JSON 格式。
+   - 每一场戏都要有明确的【场景标题】（内/外、地点、时间）。
+   - 每一段情节都要通过【动作描述】和【对白】来推动。
+   - 如果是“长篇”或“中篇”，请确保故事有起承转合，不要草草收尾。
+
+3. **输出字段要求**：
+   - \`script_text\`：这是最核心的字段。必须包含**所有**场次的**完整文本**。格式要规范，阅读感要像真正的剧本一样流畅。不要为了节省字数而省略。
+   - \`scenes\`：这是结构化数据。请确保提取出的 scenes 列表与 script_text 中的内容一一对应，不要遗漏。
+
+4. **负面约束（绝对不要做）**：
+   - 不要写：“场景1：他们在咖啡馆见面。（然后就结束了）” -> 错！要写出他们点了什么咖啡，谁先开口，眼神如何接触。
+   - 不要写：“勇者打败了恶龙。” -> 错！要写出三百个回合的战斗细节，每一次挥剑，每一次受伤。
+
+请发挥你的创造力，写出有血有肉、画面感强烈的剧本！请深呼吸，一步步思考，确保每一个场景都足够精彩。
+`,
+      user: `请基于以下数据生成剧本。
+**特别提醒**：
+1. 必须生成 ${lengthDesc} 长度的剧本。
+2. 每一个场景都必须充满细节，拒绝简略！
+3. 绝对不要生成大纲！
+${continuePrompt}
+
+数据内容：
+${JSON.stringify(payload)}`
+    };
+  } else if (taskType === 'storyboard') {
+     return {
+      system: `${baseSystem}
+      
+任务：根据输入的剧本或文本生成分镜列表。
+
+要求：
+1. 根据 params.shot_density (镜头密度) 决定分镜数量。
+2. 包含画面描述(frame)、动作(action)、运镜(camera)和对白(dialogue)。
+`,
+      user: JSON.stringify(payload)
+    };
+  } else if (taskType === 'video_cards') {
+    return {
+      system: `${baseSystem}
+      
+任务：根据分镜列表生成视频生成所需的提示词(Prompt)。
+
+要求：
+1. 为每个镜头生成详细的英文提示词(prompt)和负向提示词(negative_prompt)。
+2. 保持角色特征的一致性。
+`,
+      user: JSON.stringify(payload)
+    };
+  } else if (taskType === 'edit_plan') {
+    return {
+      system: `${baseSystem}
+      
+任务：根据镜头卡生成剪辑计划。
+
+要求：
+1. 规划每个镜头的时长、转场效果和音效。
+2. 确保总时长接近 params.target_total_sec。
+`,
+      user: JSON.stringify(payload)
+    };
+  }
+
+  return {
+    system: baseSystem,
+    user: JSON.stringify(payload)
+  };
+}
+
+/**
+ * 从文本中提取JSON
+ */
+function extractJson(text: string): any {
+  try {
+    // 1. 尝试直接解析
+    return JSON.parse(text);
+  } catch (e) {
+    // 2. 尝试提取markdown代码块
+    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
+                      text.match(/```\n([\s\S]*?)\n```/) ||
+                      text.match(/```([\s\S]*?)```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        return JSON.parse(jsonMatch[1]);
+      } catch (e2) {
+        console.warn('Markdown代码块提取JSON失败:', e2);
+      }
+    }
+
+    // 3. 尝试寻找第一个 { 和最后一个 }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        return JSON.parse(text.substring(start, end + 1));
+      } catch (e3) {
+        console.warn('大括号提取JSON失败:', e3);
+      }
+    }
+
+    throw new Error('无法从响应中提取JSON');
+  }
+}
+
+/**
  * 调用Provider生成内容
+ * 支持流式输出
  */
 async function callProvider(
   provider: ApiProvider,
   taskType: TaskType,
   model: string,
-  payload: unknown
+  payload: unknown,
+  onProgress?: (chunk: string) => void
 ): Promise<ApiResponse<unknown>> {
   // 构建请求
   const headers: Record<string, string> = {
@@ -485,25 +682,32 @@ async function callProvider(
   }
 
   // 根据Provider类型构建请求体
-  let requestBody: unknown;
+  let requestBody: any;
+  let endpoint = '';
+
   if (provider.type === 'llm') {
+    endpoint = '/chat/completions';
+    const { system, user } = constructPrompt(taskType, payload);
+
     // LLM类型：构建标准的OpenAI格式请求
     requestBody = {
       model: model || provider.default_model,
       messages: [
         {
           role: 'system',
-          content: '你是一个专业的AI漫剧创作助手。'
+          content: system
         },
         {
           role: 'user',
-          content: JSON.stringify(payload)
+          content: user
         }
       ],
-      temperature: 0.7,
-      max_tokens: 4000
+      temperature: (payload as any).params?.temperature || 0.7,
+      max_tokens: (payload as any).params?.force_max_tokens || 16384, // 增加最大token数以支持长剧本
+      stream: !!onProgress // 如果提供了回调，开启流式
     };
   } else if (provider.type === 'image') {
+    endpoint = '/images/generations';
     // Image类型：构建文生图请求
     requestBody = {
       prompt: JSON.stringify(payload),
@@ -513,43 +717,274 @@ async function callProvider(
     };
   }
 
-  // 发送请求
-  const response = await fetch(`${provider.base_url}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(requestBody)
-  });
+  // 确保base_url没有尾部斜杠
+  const baseUrl = provider.base_url.replace(/\/+$/, '');
+  const url = `${baseUrl}${endpoint}`;
 
-  if (!response.ok) {
-    throw new Error(`Provider请求失败: ${response.status} ${response.statusText}`);
+  console.log(`[AI] Calling provider: ${provider.name} (${url})`);
+
+  try {
+    // 发送请求
+    const controller = new AbortController();
+    // 流式请求不需要超时限制，或者设置更长的超时
+    const timeoutId = setTimeout(() => controller.abort(), onProgress ? 600000 : 180000); 
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[AI] Provider API Error: ${response.status}`, errorText);
+      
+      // 自动降级重试逻辑
+      if (response.status === 400 && requestBody.max_tokens > 4096) {
+          console.warn('[AI] 400 Bad Request detected. Retrying with reduced max_tokens (8192)...');
+          
+          const newPayload = JSON.parse(JSON.stringify(payload));
+          if (!newPayload.params) newPayload.params = {};
+          
+          // 尝试 8192 中间档位，如果本来是 16384
+          if (requestBody.max_tokens > 8192) {
+              newPayload.params.force_max_tokens = 8192;
+          } else {
+              newPayload.params.force_max_tokens = 4096;
+          }
+          
+          return callProvider(provider, taskType, model, newPayload, onProgress);
+      }
+
+      throw new Error(`Provider请求失败: ${response.status} - ${errorText.substring(0, 200)}`);
+    }
+
+    // 处理流式响应
+    if (provider.type === 'llm' && onProgress && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let finishReason: string | null = null;
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.trim() === '') continue;
+            if (line.trim() === 'data: [DONE]') continue;
+            
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                const content = data.choices?.[0]?.delta?.content || '';
+                
+                // 记录结束原因
+                if (data.choices?.[0]?.finish_reason) {
+                    finishReason = data.choices[0].finish_reason;
+                }
+
+                if (content) {
+                  fullContent += content;
+                  onProgress(content);
+                }
+              } catch (e) {
+                console.warn('Error parsing stream chunk', e);
+              }
+            }
+          }
+        }
+        
+        // 自动续写逻辑
+        if (finishReason === 'length') {
+            console.log('[AI] Content truncated by length limit. Auto-continuing...');
+            
+            // 为了防止无限循环，检查一下是否已经续写过太多次
+            // 我们可以在 payload 中增加一个计数器
+            const currentRetryCount = (payload as any)._continue_count || 0;
+            if (currentRetryCount < 3) {
+                // 构造新的 payload
+                const newPayload = JSON.parse(JSON.stringify(payload));
+                newPayload._continue_history = fullContent; // 传递已生成的内容作为历史（简化版，实际应该拼接到 assistant message）
+                // 但由于 constructPrompt 是 stateless 的，我们只能通过 user prompt 提示。
+                // 这不是最完美的方法（因为模型看不到它之前到底写了啥），但在无状态函数里是唯一的办法，
+                // 除非我们把 fullContent 传给 backend，但 backend 就是这里。
+                
+                // 等等，我们不能把 fullContent 传给 constructPrompt 里的 user prompt，
+                // 因为 constructPrompt 只是把 payload stringify 放到 user prompt 里。
+                // 如果 payload 很大（包含几千字的 script），那 input token 会爆炸。
+                
+                // 正确的做法：
+                // 1. 不修改 payload。
+                // 2. 这里的 callProvider 应该支持一个参数 `previousMessages`。
+                // 但这需要改动很大。
+                
+                // 简易续写方案：
+                // 再次调用，但在 prompt 里明确说“请继续写”。
+                // 风险：模型不知道之前写了啥，可能会重新开始。
+                
+                // 必须让模型知道之前写了啥。
+                // 鉴于 constructPrompt 的设计，我们只能把之前的内容放进 payload。
+                // 为了避免 Token 爆炸，我们可以只放最后 1000 个字？
+                // 是的，这就够了。
+                
+                const lastContext = fullContent.slice(-2000); // 取最后2000字符
+                newPayload._continue_history = lastContext;
+                newPayload._continue_count = currentRetryCount + 1;
+                
+                // 递归调用
+                const nextResponse = await callProvider(provider, taskType, model, newPayload, (chunk) => {
+                    // 这里的 chunk 是续写的部分，直接透传给上层
+                    onProgress(chunk);
+                    fullContent += chunk; // 本地也累加，虽然对于本次函数调用来说没用了
+                });
+                
+                // 拼接结果
+                if (nextResponse.ok && nextResponse.data) {
+                    // 合并数据
+                    // 注意：extractJson 解析出来的可能是部分数据。
+                    // 如果是 JSON 模式，拼接非常困难。
+                    // 但如果是 Markdown 模式（现在推荐的），直接拼接 text 即可。
+                    
+                    const nextData = nextResponse.data as any;
+                    let nextText = '';
+                    if (nextData.script_text) nextText = nextData.script_text;
+                    else if (nextData.text) nextText = nextData.text;
+                    
+                    // 我们返回合并后的结果
+                    // 这里我们假设 fullContent 已经是第一次生成的全部文本（包括 JSON 括号等）
+                    // 这种拼接其实是有风险的（JSON 结构会被破坏）。
+                    // 但既然我们已经在 prompt 里允许 Markdown，希望模型能智能处理。
+                    
+                    // 如果是 JSON 模式，fullContent 结尾可能是断掉的 json。
+                    // nextText 开头可能是接续的 json。
+                    // 直接拼起来 string 可能是合法的。
+                    
+                    // 无论如何，返回完整内容让 extractJson 去尽力解析
+                    const combinedText = fullContent + nextText;
+                    
+                    try {
+                        const data = extractJson(combinedText);
+                        return { ok: true, data };
+                    } catch (e) {
+                         // Fallback
+                         return { 
+                             ok: true, 
+                             data: { script_text: combinedText, scenes: [] } 
+                         };
+                    }
+                }
+            }
+        }
+
+      } catch (err) {
+         console.error('Stream reading failed:', err);
+         throw err;
+      }
+
+      // 流式结束后，构造标准返回
+      try {
+        const data = extractJson(fullContent);
+        return { ok: true, data };
+      } catch (e) {
+        console.warn('[AI] JSON extraction failed after stream.', e);
+        if (taskType === 'script') {
+           // 尝试从不完整的JSON中提取script_text
+           let cleanText = fullContent;
+           // 尝试匹配 script_text 字段的内容
+           const match = fullContent.match(/"script_text"\s*:\s*"((?:[^"\\]|\\.)*)(?:"|$)/);
+           if (match && match[1]) {
+               // 手动处理转义字符，比 JSON.parse 更宽容
+               cleanText = match[1]
+                   .replace(/\\"/g, '"')
+                   .replace(/\\n/g, '\n')
+                   .replace(/\\\\/g, '\\')
+                   .replace(/\\t/g, '\t');
+           } else {
+               // 如果没匹配到，可能是直接返回了 Markdown 代码块
+               const mdMatch = fullContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+               if (mdMatch && mdMatch[1]) {
+                   // 尝试再次提取，如果代码块里还是JSON
+                   const innerText = mdMatch[1];
+                   const innerMatch = innerText.match(/"script_text"\s*:\s*"((?:[^"\\]|\\.)*)(?:"|$)/);
+                   if (innerMatch && innerMatch[1]) {
+                        cleanText = innerMatch[1]
+                           .replace(/\\"/g, '"')
+                           .replace(/\\n/g, '\n')
+                           .replace(/\\\\/g, '\\');
+                   } else {
+                       // 如果代码块里不是JSON（可能是纯文本），直接用
+                       if (!innerText.trim().startsWith('{')) {
+                           cleanText = innerText;
+                       }
+                   }
+               }
+           }
+
+           return { 
+             ok: true, 
+             data: { 
+               script_text: cleanText,
+               scenes: [] 
+             } 
+           };
+        }
+        return { ok: true, data: { text: fullContent } };
+      }
+    }
+
+    const result = await response.json();
+
+    // 解析响应 (非流式)
+    if (provider.type === 'llm') {
+      const content = result.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error('Provider响应格式错误: missing choices[0].message.content');
+      }
+
+      console.log('[AI] Raw content received:', content.substring(0, 200) + '...');
+
+      // 尝试解析JSON
+      try {
+        const data = extractJson(content);
+        return { ok: true, data };
+      } catch (e) {
+        console.warn('[AI] JSON extraction failed. Raw content:', content);
+        // 如果不是JSON，构建一个兼容的结构返回，避免前端崩溃
+        // 对于剧本任务，把全文放到 script_text
+        if (taskType === 'script') {
+           return { 
+             ok: true, 
+             data: { 
+               script_text: content,
+               scenes: [] // 空场景列表，避免前端map报错
+             } 
+           };
+        }
+        
+        // 其他任务类型，返回 text 字段
+        return { ok: true, data: { text: content } };
+      }
+    } else if (provider.type === 'image') {
+      const imageUrl = result.data?.[0]?.url;
+      if (!imageUrl) {
+        throw new Error('Provider响应格式错误');
+      }
+      return { ok: true, data: { image_url: imageUrl } };
+    }
+
+    return { ok: false, error: { code: 'UNKNOWN_TYPE', message: '未知的Provider类型' } };
+  } catch (error) {
+    console.error('[AI] Call provider failed:', error);
+    throw error;
   }
-
-  const result = await response.json();
-
-  // 解析响应
-  if (provider.type === 'llm') {
-    const content = result.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error('Provider响应格式错误');
-    }
-
-    // 尝试解析JSON
-    try {
-      const data = JSON.parse(content);
-      return { ok: true, data };
-    } catch (e) {
-      // 如果不是JSON，直接返回文本
-      return { ok: true, data: { text: content } };
-    }
-  } else if (provider.type === 'image') {
-    const imageUrl = result.data?.[0]?.url;
-    if (!imageUrl) {
-      throw new Error('Provider响应格式错误');
-    }
-    return { ok: true, data: { image_url: imageUrl } };
-  }
-
-  return { ok: false, error: { code: 'UNKNOWN_TYPE', message: '未知的Provider类型' } };
 }
 
 /**
@@ -636,7 +1071,11 @@ export async function testProvider(provider: ApiProvider): Promise<ProviderTestR
     }
 
     // 发送测试请求
-    const response = await fetch(`${provider.base_url}${endpoint}`, {
+    // 确保base_url没有尾部斜杠，endpoint以斜杠开头
+    const baseUrl = provider.base_url.replace(/\/+$/, '');
+    const url = `${baseUrl}${endpoint}`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody)

@@ -5,7 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
-import { generateStoryboard } from '@/lib/aiClient';
+import { generate, type StoryboardGenerationResult, type ApiResponse } from '@/lib/aiClient';
 import type { Work, EnhancedScriptContent, EnhancedStoryboardContent, EnhancedShot } from '@/types';
 import ToolLayout from '@/components/layouts/ToolLayout';
 import { Button } from '@/components/ui/button';
@@ -217,7 +217,7 @@ export default function StoryboardGenerator() {
       };
 
       // 调用AI生成
-      const response = await generateStoryboard(payload);
+      const response = await generate('storyboard', payload) as ApiResponse<StoryboardGenerationResult>;
 
       if (response.ok && response.data) {
         // 构建完整内容结构

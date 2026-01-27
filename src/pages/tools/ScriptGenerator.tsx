@@ -5,7 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
-import { generateScript } from '@/lib/aiClient';
+import { generate, type ScriptGenerationResult, type ApiResponse } from '@/lib/aiClient';
 import type { Work, EnhancedScriptContent, Character } from '@/types';
 import ToolLayout from '@/components/layouts/ToolLayout';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,13 @@ export default function ScriptGenerator() {
   const [scriptText, setScriptText] = useState('');
   const [generatedContent, setGeneratedContent] = useState<EnhancedScriptContent | null>(null);
   const [loading, setLoading] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const addLog = (msg: string) => {
+    setDebugLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    setStatusMsg(msg);
+  };
 
   // 获取所有剧本作品（用于来源选择）
   const allWorks = tableApi.get('works') as Work[] | Work | null;
@@ -134,6 +141,9 @@ export default function ScriptGenerator() {
     }
 
     setLoading(true);
+    setStatusMsg('正在初始化请求...');
+    setDebugLog([]); // Clear log
+    addLog('开始生成流程...');
 
     try {
       // 组装payload
@@ -163,10 +173,23 @@ export default function ScriptGenerator() {
         }
       };
 
+      addLog('请求参数组装完成，正在发送...');
+
+      // 临时存储流式内容
+      let streamedText = '';
+      
       // 调用AI生成
-      const response = await generateScript(payload);
+      const response = await generate('script', payload, (chunk) => {
+        streamedText += chunk;
+        setScriptText(streamedText); // 实时更新编辑器
+        setStatusMsg(`正在生成中... (${streamedText.length} 字)`);
+        // 自动滚动日志或保持状态活跃
+      }) as ApiResponse<ScriptGenerationResult>;
+
+      addLog(`请求返回，状态: ${response.ok ? '成功' : '失败'}`);
 
       if (response.ok && response.data) {
+        addLog('正在解析生成结果...');
         // 构建完整内容结构
         const content: EnhancedScriptContent = {
           genre,
@@ -181,31 +204,46 @@ export default function ScriptGenerator() {
             temperature,
             style_tag: styleTag
           },
-          script_text: response.data.script_text,
-          scenes: response.data.scenes,
+          script_text: response.data.script_text || (response.data as any).text || '',
+          scenes: response.data.scenes || [],
           updated_from: {
             source_script_id: sourceWorkId || null
           }
         };
 
-        setScriptText(response.data.script_text);
+        setScriptText(content.script_text);
         setGeneratedContent(content);
-        toast({ title: '生成成功！' });
+        
+        if (!content.script_text) {
+             addLog('警告: 生成内容为空');
+             toast({ title: '生成内容为空', variant: 'destructive' });
+        } else if ((content.scenes || []).length === 0) {
+             addLog('注意: 结构化解析失败，仅展示文本');
+             toast({ title: '生成成功，但结构化解析失败', description: '仅展示文本内容' });
+        } else {
+             addLog('生成并解析成功！');
+             toast({ title: '生成成功！' });
+        }
       } else {
+        const errorMsg = response.error?.message || '未知错误';
+        addLog(`错误: ${errorMsg}`);
         toast({
           title: '生成失败',
-          description: response.error?.message || '未知错误',
+          description: errorMsg,
           variant: 'destructive'
         });
       }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      addLog(`异常捕获: ${errorMsg}`);
       toast({
         title: '生成失败',
-        description: error instanceof Error ? error.message : '未知错误',
+        description: errorMsg,
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
+      setStatusMsg('');
     }
   };
 
@@ -470,7 +508,29 @@ export default function ScriptGenerator() {
         )}
       </Button>
 
-      {/* 结果编辑器 */}
+          {/* 状态与调试信息 */}
+          {loading && (
+            <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-primary/20 animate-pulse">
+              <p className="text-sm font-medium text-primary text-center">
+                {statusMsg || 'AI正在思考中...'}
+              </p>
+            </div>
+          )}
+          
+          {debugLog.length > 0 && (
+            <div className="mt-4">
+               <details className="text-xs text-muted-foreground cursor-pointer">
+                 <summary>查看详细日志 (Debug Log)</summary>
+                 <div className="mt-2 p-2 bg-black/5 rounded border border-border h-32 overflow-y-auto font-mono">
+                   {debugLog.map((log, i) => (
+                     <div key={i} className="mb-1 border-b border-border/10 pb-1 last:border-0">{log}</div>
+                   ))}
+                 </div>
+               </details>
+            </div>
+          )}
+
+          {/* 结果编辑器 */}
       {scriptText && (
         <div>
           <Label className="font-semibold text-foreground mb-3 block">生成结果（可编辑）</Label>

@@ -5,7 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
-import { generateVideoCards } from '@/lib/aiClient';
+import { generate, type VideoCardsGenerationResult, type ApiResponse } from '@/lib/aiClient';
 import type { Work, EnhancedStoryboardContent, EnhancedVideoCardsContent, EnhancedVideoCard } from '@/types';
 import ToolLayout from '@/components/layouts/ToolLayout';
 import { Button } from '@/components/ui/button';
@@ -242,7 +242,7 @@ export default function VideoCards() {
       };
 
       // 调用AI生成
-      const response = await generateVideoCards(payload);
+      const response = await generate('video_cards', payload) as ApiResponse<VideoCardsGenerationResult>;
 
       if (response.ok && response.data) {
         // 构建完整内容结构
