@@ -17,6 +17,15 @@ import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Trash2, Save, FilePlus, Film } from 'lucide-react';
+import { motion, AnimatePresence } from "motion/react";
+
+// 本地扩展类型，用于UI动画的唯一ID
+interface UiCharacter extends Character {
+  _ui_id: string;
+}
+
+// 简单的ID生成器
+const generateId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 
 export default function ScriptGenerator() {
   const { t, language } = useLanguage();
@@ -35,7 +44,7 @@ export default function ScriptGenerator() {
   const [title, setTitle] = useState('');
   const [logline, setLogline] = useState('');
   const [world, setWorld] = useState('');
-  const [characters, setCharacters] = useState<Character[]>([]);
+  const [characters, setCharacters] = useState<UiCharacter[]>([]);
   const [constraints, setConstraints] = useState('');
 
   // 生成参数
@@ -89,7 +98,7 @@ export default function ScriptGenerator() {
         setSelectedLang(content.lang || 'zh');
         setLogline(content.logline || '');
         setWorld(content.world || '');
-        setCharacters(content.characters || []);
+        setCharacters((content.characters || []).map(c => ({ ...c, _ui_id: generateId() })));
         setConstraints(content.constraints || '');
         setLengthLevel(content.params?.length_level || 'mid');
         setPace(content.params?.pace || 'mid');
@@ -110,7 +119,7 @@ export default function ScriptGenerator() {
 
   // 角色管理
   const addCharacter = () => {
-    setCharacters([...characters, { name: '', traits: '', relation: '' }]);
+    setCharacters([...characters, { name: '', traits: '', relation: '', _ui_id: generateId() }]);
   };
 
   const updateCharacter = (index: number, field: keyof Character, value: string) => {
@@ -254,9 +263,13 @@ export default function ScriptGenerator() {
       return;
     }
 
+    // 移除UI ID
+    const cleanCharacters = characters.map(({ _ui_id, ...rest }) => rest);
+
     // 更新script_text为当前编辑的内容
     const updatedContent: EnhancedScriptContent = {
       ...generatedContent,
+      characters: cleanCharacters,
       script_text: scriptText
     };
 
@@ -294,8 +307,12 @@ export default function ScriptGenerator() {
       return;
     }
 
+    // 移除UI ID
+    const cleanCharacters = characters.map(({ _ui_id, ...rest }) => rest);
+
     const updatedContent: EnhancedScriptContent = {
       ...generatedContent,
+      characters: cleanCharacters,
       script_text: scriptText
     };
 
@@ -448,36 +465,47 @@ export default function ScriptGenerator() {
           </p>
         )}
 
-        {characters.map((char, index) => (
-          <Card key={index} className="p-4 mb-4 bg-muted/50 border-2 border-border">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="font-semibold text-foreground">角色 {index + 1}</Label>
-                <Button size="sm" variant="ghost" onClick={() => deleteCharacter(index)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <Input
-                placeholder="角色名"
-                value={char.name}
-                onChange={(e) => updateCharacter(index, 'name', e.target.value)}
-                className="bg-background border-2 border-border h-10"
-              />
-              <Input
-                placeholder="性格特征"
-                value={char.traits}
-                onChange={(e) => updateCharacter(index, 'traits', e.target.value)}
-                className="bg-background border-2 border-border h-10"
-              />
-              <Input
-                placeholder="关系/身份"
-                value={char.relation}
-                onChange={(e) => updateCharacter(index, 'relation', e.target.value)}
-                className="bg-background border-2 border-border h-10"
-              />
-            </div>
-          </Card>
-        ))}
+        <AnimatePresence mode="popLayout">
+          {characters.map((char, index) => (
+            <motion.div
+              key={char._ui_id || index}
+              layout
+              initial={{ opacity: 0, scale: 0.95, x: -20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.95, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Card className="p-4 mb-4 bg-muted/50 border-2 border-border">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="font-semibold text-foreground">角色 {index + 1}</Label>
+                    <Button size="sm" variant="ghost" onClick={() => deleteCharacter(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="角色名"
+                    value={char.name}
+                    onChange={(e) => updateCharacter(index, 'name', e.target.value)}
+                    className="bg-background border-2 border-border h-10"
+                  />
+                  <Input
+                    placeholder="性格特征"
+                    value={char.traits}
+                    onChange={(e) => updateCharacter(index, 'traits', e.target.value)}
+                    className="bg-background border-2 border-border h-10"
+                  />
+                  <Input
+                    placeholder="关系/身份"
+                    value={char.relation}
+                    onChange={(e) => updateCharacter(index, 'relation', e.target.value)}
+                    className="bg-background border-2 border-border h-10"
+                  />
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
       {/* 约束条件 */}
@@ -493,20 +521,22 @@ export default function ScriptGenerator() {
       </div>
 
       {/* 生成按钮 */}
-      <Button
-        onClick={handleGenerate}
-        disabled={loading}
-        className="w-full h-12 bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            生成中...
-          </>
-        ) : (
-          '生成剧本'
-        )}
-      </Button>
+      <motion.div whileTap={{ scale: 0.95 }}>
+        <Button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="w-full h-12 bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 hover:from-purple-700 hover:via-blue-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              生成中...
+            </>
+          ) : (
+            '生成剧本'
+          )}
+        </Button>
+      </motion.div>
 
           {/* 状态与调试信息 */}
           {loading && (
@@ -546,29 +576,35 @@ export default function ScriptGenerator() {
       {/* 操作按钮 */}
       {scriptText && (
         <div className="flex gap-3">
-          <Button
-            onClick={handleSave}
-            className="flex-1 h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            保存
-          </Button>
-          <Button
-            onClick={handleSaveAs}
-            variant="outline"
-            className="flex-1 h-11 border-2 border-border hover:border-primary/50"
-          >
-            <FilePlus className="h-4 w-4 mr-2" />
-            另存为
-          </Button>
-          <Button
-            onClick={handleGenerateStoryboard}
-            variant="outline"
-            className="flex-1 h-11 border-2 border-border hover:border-primary/50"
-          >
-            <Film className="h-4 w-4 mr-2" />
-            生成分镜
-          </Button>
+          <motion.div className="flex-1" whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={handleSave}
+              className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              保存
+            </Button>
+          </motion.div>
+          <motion.div className="flex-1" whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={handleSaveAs}
+              variant="outline"
+              className="w-full h-11 border-2 border-border hover:border-primary/50"
+            >
+              <FilePlus className="h-4 w-4 mr-2" />
+              另存为
+            </Button>
+          </motion.div>
+          <motion.div className="flex-1" whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={handleGenerateStoryboard}
+              variant="outline"
+              className="w-full h-11 border-2 border-border hover:border-primary/50"
+            >
+              <Film className="h-4 w-4 mr-2" />
+              生成分镜
+            </Button>
+          </motion.div>
         </div>
       )}
     </div>

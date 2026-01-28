@@ -43,7 +43,7 @@ export default function Studio() {
     const pathMap: Record<WorkType, string> = {
       script: '/tools/script',
       storyboard: '/tools/storyboard',
-      video_cards: '/tools/video',
+      video_cards: '/tools/storyboard',
       edit_plan: '/tools/edit'
     };
     navigate(`${pathMap[work.type]}?id=${work.id}`);

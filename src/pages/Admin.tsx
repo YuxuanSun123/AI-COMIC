@@ -51,35 +51,137 @@ export default function Admin() {
   // 加载配置
   const loadConfig = () => {
     // 加载Providers
+    let currentProviders: ApiProvider[] = [];
     const providersStr = localStorage.getItem('api_providers');
     if (providersStr) {
       try {
-        setProviders(JSON.parse(providersStr));
+        currentProviders = JSON.parse(providersStr);
       } catch (e) {
         console.error('加载Providers失败:', e);
       }
     }
 
-    // 加载Routing
-    const routingStr = localStorage.getItem('api_routing');
-    if (routingStr) {
-      try {
-        setRouting(JSON.parse(routingStr));
-      } catch (e) {
-        console.error('加载Routing失败:', e);
-      }
+    // Auto-inject Google Vertex AI (Image Generation)
+    const googleProviderId = 'provider_google_vertex_ai';
+    const googleApiKey = 'AQ.Ab8RN6IuMNC-EpMuMkohlMUuTLZAKNq5kuqvG9ibf2XHQgMsdw';
+    // Check if we already have this provider (by ID or Key)
+    const existingGoogleIndex = currentProviders.findIndex(p => p.id === googleProviderId || p.api_key === googleApiKey);
+    
+    const googleProviderConfig: ApiProvider = {
+        id: googleProviderId,
+        name: 'Google Vertex AI (Image)',
+        type: 'image', // Changed to image as requested
+        enabled: true,
+        base_url: 'https://generativelanguage.googleapis.com/v1beta',
+        api_key: googleApiKey,
+        default_model: 'imagen-3.0-generate-001', // Suitable for image generation
+        created_ms: Date.now(),
+        updated_ms: Date.now()
+    };
+
+    if (existingGoogleIndex >= 0) {
+        // Update existing to ensure type is image
+        currentProviders[existingGoogleIndex] = {
+            ...currentProviders[existingGoogleIndex],
+            ...googleProviderConfig,
+            id: currentProviders[existingGoogleIndex].id // keep original ID if matched by key
+        };
     } else {
-      // 初始化默认Routing
-      const defaultRouting: ApiRouting = {
+        currentProviders.push(googleProviderConfig);
+    }
+
+    // Auto-inject DeepSeek (LLM)
+    const deepseekProviderId = 'provider_deepseek';
+    const deepseekApiKey = 'sk-ec1f6aba72ab4a359f5fb32d24ccc562';
+    const existingDeepseekIndex = currentProviders.findIndex(p => p.id === deepseekProviderId || p.api_key === deepseekApiKey);
+
+    const deepseekProviderConfig: ApiProvider = {
+        id: deepseekProviderId,
+        name: 'DeepSeek',
+        type: 'llm',
+        enabled: true,
+        base_url: 'https://api.deepseek.com',
+        api_key: deepseekApiKey,
+        default_model: 'deepseek-chat',
+        created_ms: Date.now(),
+        updated_ms: Date.now()
+    };
+
+    if (existingDeepseekIndex >= 0) {
+         currentProviders[existingDeepseekIndex] = {
+            ...currentProviders[existingDeepseekIndex],
+            ...deepseekProviderConfig,
+            id: currentProviders[existingDeepseekIndex].id
+        };
+    } else {
+        currentProviders.push(deepseekProviderConfig);
+    }
+    
+    // Save updated providers
+    localStorage.setItem('api_providers', JSON.stringify(currentProviders));
+    setProviders(currentProviders);
+
+    // 加载Routing
+    let currentRouting: ApiRouting | null = null;
+    const routingStr = localStorage.getItem('api_routing');
+    
+    // Default Routing Structure
+    const defaultRoutingStruct: ApiRouting = {
         script: createDefaultRouting(),
         storyboard: createDefaultRouting(),
         video_cards: createDefaultRouting(),
         edit_plan: createDefaultRouting(),
         image_storyboard: createDefaultRouting(),
         image_shot: createDefaultRouting()
-      };
-      setRouting(defaultRouting);
+    };
+
+    if (routingStr) {
+      try {
+        currentRouting = JSON.parse(routingStr);
+      } catch (e) {
+        console.error('加载Routing失败:', e);
+      }
     }
+    
+    if (!currentRouting) {
+        currentRouting = defaultRoutingStruct;
+    }
+    
+    // Apply Routing Logic (User Request: DeepSeek for Text, Google for Image)
+    let routingUpdated = false;
+
+    // 1. Configure DeepSeek for Text Tasks (Script, Storyboard, Video Cards, Edit Plan)
+    const textTasks: TaskType[] = ['script', 'storyboard', 'video_cards', 'edit_plan'];
+    textTasks.forEach(task => {
+        if (currentRouting && currentRouting[task]) {
+            if (currentRouting[task].provider_id !== deepseekProviderId) {
+                currentRouting[task].enabled = true;
+                currentRouting[task].provider_id = deepseekProviderId;
+                currentRouting[task].model = 'deepseek-chat';
+                routingUpdated = true;
+            }
+        }
+    });
+
+    // 2. Configure Google for Image Tasks (Image Storyboard, Image Shot)
+    const imageTasks: TaskType[] = ['image_storyboard', 'image_shot'];
+    imageTasks.forEach(task => {
+        if (currentRouting && currentRouting[task]) {
+             if (currentRouting[task].provider_id !== googleProviderId) {
+                currentRouting[task].enabled = true;
+                currentRouting[task].provider_id = googleProviderId;
+                currentRouting[task].model = 'imagen-3.0-generate-001';
+                routingUpdated = true;
+             }
+        }
+    });
+
+    if (routingUpdated) {
+        localStorage.setItem('api_routing', JSON.stringify(currentRouting));
+        setTimeout(() => toast({ title: '系统配置更新', description: 'DeepSeek(文本) 与 Google(绘图) 已配置' }), 1000);
+    }
+
+    setRouting(currentRouting);
   };
 
   // 创建默认路由配置

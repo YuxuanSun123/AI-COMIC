@@ -658,6 +658,128 @@ function extractJson(text: string): any {
  * 调用Provider生成内容
  * 支持流式输出
  */
+async function callGoogleProvider(
+  provider: ApiProvider,
+  taskType: TaskType,
+  model: string,
+  payload: unknown,
+  onProgress?: (chunk: string) => void
+): Promise<ApiResponse<unknown>> {
+  const baseUrl = provider.base_url.replace(/\/+$/, '');
+  const apiKey = provider.api_key;
+  
+  // Image Generation (Imagen 3 on Vertex AI / Gemini API)
+  if (provider.type === 'image' || taskType.startsWith('image_')) {
+      const targetModel = model || provider.default_model || 'imagen-3.0-generate-001';
+      // Note: The public API for Imagen on AI Studio might differ. 
+      // Assuming /v1beta/models/{model}:predict or similar. 
+      // Current AI Studio docs suggest standard GenerateContent works for some multimodal, but Imagen specific endpoint is safer if known.
+      // However, for "AQ..." keys (AI Studio), standard Imagen might not be fully exposed via the same endpoint as Vertex.
+      // Fallback: Use the text generation endpoint but with image prompt structure if supported, 
+      // OR simulate response if we can't hit the real image API yet.
+      
+      // Attempting to use the `predict` endpoint often used for Vertex AI, but via the public gateway
+      const url = `${baseUrl}/models/${targetModel}:predict?key=${apiKey}`;
+      
+      // Construct payload for Imagen
+      // Payload format for Imagen usually involves "instances"
+      const promptText = typeof payload === 'string' ? payload : JSON.stringify(payload);
+      const requestBody = {
+          instances: [
+              { prompt: promptText }
+          ],
+          parameters: {
+              sampleCount: 1,
+              aspectRatio: "1:1"
+          }
+      };
+
+      console.log(`[AI] Calling Google Image Provider: ${url}`);
+      
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            // Fallback for "generateContent" if predict fails (some models use generateContent for everything)
+            console.warn('[AI] Imagen predict failed, trying generateContent fallback...');
+            const fallbackUrl = `${baseUrl}/models/${targetModel}:generateContent?key=${apiKey}`;
+             const fallbackBody = {
+                contents: [{ parts: [{ text: `Generate an image of: ${promptText}` }] }]
+            };
+            const fbResponse = await fetch(fallbackUrl, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(fallbackBody)
+            });
+             if (!fbResponse.ok) {
+                 const errorText = await fbResponse.text();
+                 throw new Error(`Google Image API Error: ${errorText}`);
+             }
+             const data = await fbResponse.json();
+             // Try to extract image (if base64 returned) or text url
+             // This is highly dependent on the exact model capability on AI Studio
+             // For now, if we get text, we return it.
+             return { ok: true, data: data };
+        }
+
+        const data = await response.json();
+        // Extract Base64 image
+        const base64Image = data.predictions?.[0]?.bytesBase64Encoded;
+        if (base64Image) {
+            return { ok: true, data: [{ url: `data:image/png;base64,${base64Image}` }] };
+        }
+        return { ok: true, data: data };
+      } catch (e) {
+          console.error('[AI] Google Image Gen Error:', e);
+          throw e;
+      }
+  }
+
+  // Text Generation (Gemini)
+  const { system, user } = constructPrompt(taskType, payload);
+  const fullPrompt = `${system}\n\nUser Request:\n${user}`;
+  const targetModel = model || provider.default_model || 'gemini-1.5-flash';
+  const url = `${baseUrl}/models/${targetModel}:generateContent?key=${apiKey}`;
+  
+  console.log(`[AI] Calling Google Text Provider: ${url}`);
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: {
+          temperature: (payload as any).params?.temperature || 0.7,
+          maxOutputTokens: 8192
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Google API Error ${response.status}: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) throw new Error('No content in Google response');
+    
+    if (onProgress) onProgress(text);
+    
+    const result = extractJson(text);
+    return { ok: true, data: result };
+  } catch (error) {
+    console.error('[AI] Google Provider Error:', error);
+    throw error;
+  }
+}
+
 async function callProvider(
   provider: ApiProvider,
   taskType: TaskType,
@@ -665,6 +787,11 @@ async function callProvider(
   payload: unknown,
   onProgress?: (chunk: string) => void
 ): Promise<ApiResponse<unknown>> {
+  // Google Gemini API Support
+  if (provider.base_url.includes('googleapis.com')) {
+    return callGoogleProvider(provider, taskType, model, payload, onProgress);
+  }
+
   // 构建请求
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -703,7 +830,7 @@ async function callProvider(
         }
       ],
       temperature: (payload as any).params?.temperature || 0.7,
-      max_tokens: (payload as any).params?.force_max_tokens || 16384, // 增加最大token数以支持长剧本
+      max_tokens: (payload as any).params?.force_max_tokens || 8192, // 降低默认token数以适配DeepSeek等模型
       stream: !!onProgress // 如果提供了回调，开启流式
     };
   } else if (provider.type === 'image') {
@@ -935,8 +1062,54 @@ async function callProvider(
                scenes: [] 
              } 
            };
+        } else if (taskType === 'storyboard') {
+            // 尝试从文本中提取 shots 数组
+            // 1. 尝试找 Markdown 代码块
+            let potentialJson = fullContent;
+            const mdMatch = fullContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (mdMatch && mdMatch[1]) {
+                potentialJson = mdMatch[1];
+            }
+            // 2. 尝试解析
+            try {
+                const parsed = JSON.parse(potentialJson);
+                if (parsed.shots) return { ok: true, data: parsed };
+                if (Array.isArray(parsed)) return { ok: true, data: { shots: parsed } };
+            } catch (ignore) {
+                // 3. 正则提取 shots 数组
+                const shotsMatch = fullContent.match(/"shots"\s*:\s*(\[\s*\{[\s\S]*\}\s*\])/);
+                if (shotsMatch && shotsMatch[1]) {
+                    try {
+                        const shots = JSON.parse(shotsMatch[1]);
+                        return { ok: true, data: { shots } };
+                    } catch (ignore) {}
+                }
+            }
+            // 失败，返回空 shots 防止前端崩，但带上原始文本
+             return { ok: true, data: { shots: [], raw_text: fullContent } };
+        } else if (taskType === 'video_cards') {
+            // 尝试从文本中提取 cards 数组
+            let potentialJson = fullContent;
+            const mdMatch = fullContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (mdMatch && mdMatch[1]) {
+                potentialJson = mdMatch[1];
+            }
+            try {
+                const parsed = JSON.parse(potentialJson);
+                if (parsed.cards) return { ok: true, data: parsed };
+                if (Array.isArray(parsed)) return { ok: true, data: { cards: parsed } };
+            } catch (ignore) {
+                const cardsMatch = fullContent.match(/"cards"\s*:\s*(\[\s*\{[\s\S]*\}\s*\])/);
+                if (cardsMatch && cardsMatch[1]) {
+                    try {
+                        const cards = JSON.parse(cardsMatch[1]);
+                        return { ok: true, data: { cards } };
+                    } catch (ignore) {}
+                }
+            }
+            return { ok: true, data: { cards: [], raw_text: fullContent } };
         }
-        return { ok: true, data: { text: fullContent } };
+        return { ok: true, data: { text: fullContent, raw_text: fullContent } };
       }
     }
 
@@ -954,6 +1127,10 @@ async function callProvider(
       // 尝试解析JSON
       try {
         const data = extractJson(content);
+        // 始终附加原始文本
+        if (typeof data === 'object' && data !== null) {
+            data.raw_text = content;
+        }
         return { ok: true, data };
       } catch (e) {
         console.warn('[AI] JSON extraction failed. Raw content:', content);
@@ -964,13 +1141,22 @@ async function callProvider(
              ok: true, 
              data: { 
                script_text: content,
-               scenes: [] // 空场景列表，避免前端map报错
+               scenes: [], // 空场景列表，避免前端map报错
+               raw_text: content
              } 
            };
+        } else if (taskType === 'storyboard') {
+            return {
+                ok: true,
+                data: {
+                    shots: [],
+                    raw_text: content
+                }
+            };
         }
         
         // 其他任务类型，返回 text 字段
-        return { ok: true, data: { text: content } };
+        return { ok: true, data: { text: content, raw_text: content } };
       }
     } else if (provider.type === 'image') {
       const imageUrl = result.data?.[0]?.url;

@@ -101,6 +101,7 @@ export interface EnhancedStoryboardContent {
   };
   params: StoryboardParams; // 生成参数
   shots: EnhancedShot[]; // 镜头列表
+  raw_text?: string; // 原始生成内容（用于调试或解析失败时显示）
   updated_from: {
     source_storyboard_id: string | null; // 来源分镜ID
   };
@@ -151,6 +152,7 @@ export interface EnhancedVideoCardsContent {
   };
   params: VideoCardsParams; // 生成参数
   cards: EnhancedVideoCard[]; // 镜头卡列表
+  raw_text?: string; // 原始生成内容
   updated_from: {
     source_video_cards_id: string | null; // 来源镜头卡ID
   };

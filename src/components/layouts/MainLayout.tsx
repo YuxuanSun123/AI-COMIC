@@ -43,7 +43,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         children: [
           { path: '/tools/script', label: t.scriptGenerator },
           { path: '/tools/storyboard', label: t.storyboardGenerator },
-          { path: '/tools/video', label: t.videoCards },
           { path: '/tools/edit', label: t.editing }
         ]
       },
@@ -74,7 +73,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       '/studio': t.studio,
       '/tools/script': t.scriptGenerator,
       '/tools/storyboard': t.storyboardGenerator,
-      '/tools/video': t.videoCards,
       '/tools/edit': t.editing,
       '/links': t.links,
       '/pricing': t.pricing,

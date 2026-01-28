@@ -29,12 +29,6 @@ export default function Home() {
       path: '/tools/storyboard'
     },
     {
-      title: t.videoCards,
-      description: '生成详细的镜头卡，包含画面和提示词',
-      icon: Video,
-      path: '/tools/video'
-    },
-    {
       title: t.editing,
       description: '制定剪辑计划，整合素材和音效',
       icon: Scissors,
@@ -61,8 +55,8 @@ export default function Home() {
         ))}
       </div>
 
-      {/* 后台管理入口 - 调试模式 */}
-      <div className="mt-12 max-w-6xl mx-auto">
+      {/* 后台管理入口 - 调试模式 (已隐藏) */}
+      {/* <div className="mt-12 max-w-6xl mx-auto">
         <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-pink-500/10 border-2 border-primary/20 rounded-xl p-8">
           <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -88,7 +82,7 @@ export default function Home() {
             </Button>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* 介绍文本 */}
       <div className="mt-16 max-w-4xl mx-auto text-center">
