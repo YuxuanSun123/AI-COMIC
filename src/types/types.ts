@@ -46,8 +46,8 @@ export interface Character {
   name: string; // 角色名
   traits: string; // 性格特征
   relation: string; // 关系/身份
-  appearance: string; // 外貌特征
-  experience: string; // 经历/背景
+  appearance?: string; // 外貌特征
+  experience?: string; // 经历/背景
   image_url?: string; // 角色样貌图
 }
 
@@ -235,6 +235,11 @@ export interface EnhancedEditItem {
   duration_sec: number; // 时长（秒）
   caption_subtitle: string; // 字幕要点
   notes: string; // 备注
+  visual_desc?: string;
+  character_action?: string;
+  lighting_mood?: string;
+  camera_desc?: string;
+  image_url?: string;
 }
 
 // 剪辑计划内容结构（旧版 - 保持兼容）
@@ -346,6 +351,7 @@ export interface ApiRouting {
   edit_plan: FunctionRouting; // 剪辑计划生成
   image_storyboard: FunctionRouting; // 分镜图生成
   image_shot: FunctionRouting; // 镜头图生成
+  image_generation: FunctionRouting; // 独立生图
 }
 
 // Provider测试结果

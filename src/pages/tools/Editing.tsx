@@ -1,7 +1,7 @@
 // 剪辑合成 - 完整联动工作流实现
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
@@ -27,7 +27,7 @@ export default function Editing() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const location = useLocation();
+  // const location = useLocation();
   const pageTitle = "角色与分镜生成"; // t.assetEditor
 
   // 基础设置
@@ -69,13 +69,13 @@ export default function Editing() {
     if (!carouselApi) return;
 
     const onScroll = () => {
-      const scrollProgress = carouselApi.scrollProgress();
+      // const scrollProgress = carouselApi.scrollProgress();
       const nodes = carouselApi.slideNodes();
       const rootNode = carouselApi.rootNode();
       const rootRect = rootNode.getBoundingClientRect();
       const center = rootRect.width / 2;
-
-      nodes.forEach((node, index) => {
+      
+      nodes.forEach((node) => {
         const nodeRect = node.getBoundingClientRect();
         const nodeCenter = nodeRect.left - rootRect.left + nodeRect.width / 2;
         const dist = nodeCenter - center;
@@ -350,22 +350,44 @@ export default function Editing() {
       for (let i = 0; i < updatedCharacters.length; i++) {
         if (!updatedCharacters[i].image_url) {
           addLog(`正在生成角色: ${updatedCharacters[i].name}...`);
-          try {
-            const imageUrl = await performGenerateCharacterImage(updatedCharacters[i]);
-            updatedCharacters[i].image_url = imageUrl;
-            
-            // Update state incrementally to show progress
-            setCharacters([...updatedCharacters]); 
-            addLog(`角色 ${updatedCharacters[i].name} 生成成功. URL: ${imageUrl.substring(0, 30)}...`);
+          
+          let retryCount = 0;
+          const MAX_RETRIES = 3;
+          let success = false;
 
-          } catch (err) {
-            console.error(err);
-            addLog(`角色 ${updatedCharacters[i].name} 生成失败: ${err instanceof Error ? err.message : String(err)}`);
+          while (retryCount <= MAX_RETRIES && !success) {
+            try {
+              const imageUrl = await performGenerateCharacterImage(updatedCharacters[i]);
+              updatedCharacters[i].image_url = imageUrl;
+              
+              // Update state incrementally to show progress
+              setCharacters([...updatedCharacters]); 
+              addLog(`角色 ${updatedCharacters[i].name} 生成成功. URL: ${imageUrl.substring(0, 30)}...`);
+              success = true;
+
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              
+              // Check for Rate Limit (429)
+              if (errorMessage.includes('429') || errorMessage.includes('Rate limit') || errorMessage.includes('Throttling')) {
+                 retryCount++;
+                 if (retryCount <= MAX_RETRIES) {
+                    const waitTime = 20000 * retryCount; // 20s, 40s, 60s
+                    addLog(`角色 ${updatedCharacters[i].name} 生成遭遇限流 (429). 等待 ${waitTime/1000}秒后重试 (${retryCount}/${MAX_RETRIES})...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue; // Retry loop
+                 }
+              }
+
+              console.error(err);
+              addLog(`角色 ${updatedCharacters[i].name} 生成失败: ${errorMessage}`);
+              break; // Break retry loop for non-429 or max retries
+            }
           }
 
           // Add a delay to avoid rate limiting (e.g., Aliyun QPS limit), even if failed
           if (i < updatedCharacters.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 5000)); // Increased to 5s
+              await new Promise(resolve => setTimeout(resolve, 10000)); // Increased to 10s
           }
         } else {
             addLog(`角色 ${updatedCharacters[i].name} 已存在，跳过`);
@@ -385,27 +407,41 @@ export default function Editing() {
 
   // 生成单格漫画图
   const handleGeneratePanelImage = async (index: number) => {
-    const updated = [...items];
-    updated[index] = { ...updated[index], notes: '正在生成图片...' }; // 临时状态
-    setItems(updated);
+    // 1. 设置临时状态 (使用函数式更新以获取最新状态)
+    setItems(prevItems => {
+      const updated = [...prevItems];
+      updated[index] = { ...updated[index], notes: '正在生成图片...' };
+      return updated;
+    });
     
-    // Only clear logs if this is a new standalone action, or maybe just append? 
-    // Let's append for panel generation to keep history if user generates multiple.
-    // Or maybe clear if it's been a while? For simplicity, let's just append.
     addLog(`开始生成分格 ${index + 1} 图片...`);
 
     try {
-      const imageUrl = await performGeneratePanelImage(updated[index], characters);
-      const finalUpdated = [...items];
-      finalUpdated[index] = { 
-        ...finalUpdated[index], 
-        image_url: imageUrl,
-        notes: '' // 清除临时状态
-      };
-      setItems(finalUpdated);
+      // 注意：这里我们使用 items[index] 可能不是最新的，但作为生成参数通常没问题
+      // 如果需要最新的 items，应该用 useRef 或者在函数式更新里获取，但 generate 是异步的
+      // 我们假设生成参数在点击瞬间确定
+      const itemToGenerate = items[index]; 
+      const imageUrl = await performGeneratePanelImage(itemToGenerate, characters);
+      
+      // 2. 更新结果 (再次使用函数式更新，确保不覆盖期间的其他修改)
+      setItems(prevItems => {
+        const finalUpdated = [...prevItems];
+        finalUpdated[index] = { 
+          ...finalUpdated[index], 
+          image_url: imageUrl,
+          notes: '' // 清除临时状态
+        };
+        return finalUpdated;
+      });
+
       addLog(`分格 ${index + 1} 图片生成成功`);
       toast({ title: `分格 ${index + 1} 生成完成` });
     } catch (error) {
+      setItems(prevItems => {
+        const updated = [...prevItems];
+        updated[index] = { ...updated[index], notes: '生成失败' }; // 恢复或显示错误
+        return updated;
+      });
       addLog(`分格 ${index + 1} 图片生成失败: ${error}`);
       toast({ title: '图片生成失败', variant: 'destructive' });
     }
@@ -762,7 +798,7 @@ export default function Editing() {
       return;
     }
 
-    const totalSec = items.reduce((sum, item) => sum + item.duration_sec, 0);
+    // const totalSec = items.reduce((sum, item) => sum + item.duration_sec, 0);
     
     let txt = `# 项目：${title || '未命名'}\n`;
     txt += `# 总条目数：${items.length}\n\n`;

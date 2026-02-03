@@ -189,6 +189,12 @@ export interface VideoCardsGenerationResult {
   }>;
 }
 
+export interface ImageGenerationResult {
+  image_url: string;
+  raw_text?: string;
+  warning?: string;
+}
+
 // 剪辑计划生成payload类型
 export interface GenerateEditPlanPayload {
   user: {
@@ -773,6 +779,7 @@ async function callGoogleProvider(
   // Image Generation (Imagen 3 on Vertex AI / Gemini API)
   if (provider.type === 'image' || taskType.startsWith('image_')) {
       const targetModel = model || provider.default_model || 'imagen-3.0-generate-001';
+      const promptText = typeof payload === 'string' ? payload : (payload as any).prompt || JSON.stringify(payload);
       // Note: The public API for Imagen on AI Studio might differ. 
       // Assuming /v1beta/models/{model}:predict or similar. 
       // Current AI Studio docs suggest standard GenerateContent works for some multimodal, but Imagen specific endpoint is safer if known.
@@ -1974,8 +1981,20 @@ export async function testProvider(provider: ApiProvider): Promise<ProviderTestR
  * @param model (可选) 指定模型
  * @returns 图片URL
  */
-export async function generateImage(prompt: string, model?: string): Promise<ApiResponse<{ image_url: string }>> {
-  return generate('image_generation' as TaskType, prompt) as Promise<ApiResponse<{ image_url: string }>>;
+export async function generateImage(prompt: string, _model?: string): Promise<ApiResponse<ImageGenerationResult>> {
+  return generate('image_generation' as TaskType, prompt) as Promise<ApiResponse<ImageGenerationResult>>;
+}
+
+function repairJson(jsonStr: string): string {
+  try {
+    // 1. Remove trailing commas
+    let fixed = jsonStr.replace(/,\s*([\]}])/g, '$1');
+    // 2. Fix unquoted keys (simple case)
+    fixed = fixed.replace(/([{,]\s*)(\w+):/g, '$1"$2":');
+    return fixed;
+  } catch (e) {
+    return jsonStr;
+  }
 }
 
 export default {

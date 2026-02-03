@@ -102,7 +102,7 @@ function generateLocation(genre: string, sceneNo: number, isZh: boolean): string
 /**
  * 生成场景摘要
  */
-function generateSummary(genre: string, sceneNo: number, logline: string, isZh: boolean): string {
+function generateSummary(_genre: string, sceneNo: number, logline: string, isZh: boolean): string {
   if (isZh) {
     const templates = [
       `第${sceneNo}场：故事开始，${logline}的序幕拉开`,
@@ -164,7 +164,7 @@ function generateDialogues(
 function generateDialogueLine(
   character: { name: string; traits: string; relation: string },
   sceneNo: number,
-  genre: string,
+  _genre: string,
   isZh: boolean
 ): string {
   if (isZh) {
@@ -197,7 +197,7 @@ function generateDialogueLine(
 /**
  * 生成动作描述
  */
-function generateActions(genre: string, sceneNo: number, isZh: boolean): string[] {
+function generateActions(_genre: string, sceneNo: number, isZh: boolean): string[] {
   if (isZh) {
     const actions = [
       '主角缓缓走进房间，环顾四周',
@@ -228,7 +228,7 @@ function generateActions(genre: string, sceneNo: number, isZh: boolean): string[
 /**
  * 生成镜头建议
  */
-function generateCameraSuggestions(genre: string, sceneNo: number, isZh: boolean): string {
+function generateCameraSuggestions(_genre: string, sceneNo: number, isZh: boolean): string {
   if (isZh) {
     const suggestions = [
       '中景，平视角度，展现人物关系',
@@ -436,7 +436,7 @@ function generateFrame(
   scene: any,
   shotIndex: number,
   genre: string,
-  visualStyle: string,
+  _visualStyle: string,
   isZh: boolean
 ): string {
   if (isZh) {
@@ -912,7 +912,7 @@ export async function mockGenerateEditPlan(
   // 模拟网络延迟
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  const { lang, genre, source, params } = payload;
+  const { lang, genre: _genre, source, params: _params } = payload;
   const isZh = lang === 'zh';
 
   const items: Array<{

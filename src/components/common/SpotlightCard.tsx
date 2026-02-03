@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+// import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SpotlightCardProps extends React.ComponentProps<typeof Card> {
   children: React.ReactNode;

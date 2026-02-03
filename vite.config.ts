@@ -9,7 +9,7 @@ import { miaodaDevPlugin } from "miaoda-sc-plugin";
 export default defineConfig({
   plugins: [react(), svgr({
       svgrOptions: {
-        icon: true, exportType: 'named', namedExport: 'ReactComponent', }, }), miaodaDevPlugin()],
+        icon: true, exportType: 'named', namedExport: 'ReactComponent', }, }), miaodaDevPlugin() as any],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+// import { useAuth } from '@/contexts/AuthContext';
+// import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
@@ -19,8 +19,8 @@ import { testProvider as testProviderApi } from '@/lib/aiClient';
 
 export default function Admin() {
   const { t } = useLanguage();
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
+  // const { currentUser } = useAuth();
+  // const navigate = useNavigate();
   const { toast } = useToast();
 
   // Providers状态
@@ -36,7 +36,8 @@ export default function Admin() {
     video_cards: false,
     edit_plan: false,
     image_storyboard: false,
-    image_shot: false
+    image_shot: false,
+    image_generation: false
   });
 
   // UI状态

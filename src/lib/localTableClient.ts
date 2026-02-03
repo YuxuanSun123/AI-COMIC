@@ -3,7 +3,7 @@
 import type { 
   DataClient, 
   ApiResponse, 
-  ErrorCode, 
+  // ErrorCode, 
   QueryOptions 
 } from './dataClient.types';
 import type { TableName, User, Work, News, Link } from '@/types';

@@ -1,7 +1,7 @@
 // 分镜生成器 - 完整联动工作流实现
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, FilePlus, Film, ArrowUp, ArrowDown, RefreshCw, ExternalLink, Download, CheckCircle2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, FilePlus, Film, ArrowUp, ArrowDown, RefreshCw, Download, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from "motion/react";
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 
@@ -34,7 +34,7 @@ export default function StoryboardGenerator() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   // 基础设置
   const [sourceScriptId, setSourceScriptId] = useState<string>('');
@@ -375,7 +375,7 @@ export default function StoryboardGenerator() {
             setCharacters(response.data.characters || []);
             setGeneratedContent(content);
             // renumberShots(); // 移除此处调用，避免因闭包导致读取旧state覆盖新数据
-            setGenerationLogs(prev => [...prev, `处理完成：共生成 ${response.data.shots.length} 个镜头`]);
+            setGenerationLogs(prev => [...prev, `处理完成：共生成 ${response.data!.shots.length} 个镜头`]);
             toast({ title: '生成成功！' });
         }
       } else {
@@ -619,8 +619,8 @@ export default function StoryboardGenerator() {
 
         if (response.data.cards && Array.isArray(response.data.cards)) {
              response.data.cards.forEach(processCard);
-        } else if (response.data.prompts && Array.isArray(response.data.prompts)) {
-             (response.data.prompts as any[]).forEach(processCard);
+        } else if ((response.data as any).prompts && Array.isArray((response.data as any).prompts)) {
+             ((response.data as any).prompts as any[]).forEach(processCard);
         }
 
         // 3. 将 AI 卡片映射回原始镜头列表

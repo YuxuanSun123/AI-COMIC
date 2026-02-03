@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,6 +129,7 @@ const ApiTest = () => {
     }
   };
 
+  /*
   const testAiClient = async () => {
     setLoading(true);
     addLog('--- Starting aiClient.generateImage Test ---');
@@ -142,7 +143,9 @@ const ApiTest = () => {
       addLog('--- End Test ---');
     }
   };
+  */
 
+  /*
   const testGemini2FlashImagePrompt = async () => {
     setLoading(true);
     addLog('--- Starting Gemini 2.0 Flash (Prompt Only) Test ---');
@@ -179,7 +182,9 @@ const ApiTest = () => {
       addLog('--- End Test ---');
     }
   };
+  */
 
+  /*
   const listModels = async () => {
     setLoading(true);
     addLog('--- Listing Available Models (v1beta) ---');
@@ -213,6 +218,7 @@ const ApiTest = () => {
         addLog('--- End List Models ---');
     }
   };
+  */
 
   const testSDKGenerateImage = async () => {
     setLoading(true);

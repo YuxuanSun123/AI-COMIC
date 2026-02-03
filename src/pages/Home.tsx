@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
-import ToolCard from '@/components/common/ToolCard';
+// import { useAuth } from '@/contexts/AuthContext';
+// import ToolCard from '@/components/common/ToolCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import SpotlightCard from '@/components/common/SpotlightCard';
 
 export default function Home() {
   const { t } = useLanguage();
-  const { currentUser } = useAuth();
+  // const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -8,7 +8,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Toaster } from '@/components/ui/toaster';
 import { initMockData } from '@/lib/mockData';
-import { Loader2 } from 'lucide-react';
+// import { Loader2 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from '@/components/common/PageTransition';
 import { Skeleton } from '@/components/ui/skeleton';

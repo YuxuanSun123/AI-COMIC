@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
 import { generate, type VideoCardsGenerationResult, type ApiResponse } from '@/lib/aiClient';
-import type { Work, EnhancedStoryboardContent, EnhancedVideoCardsContent, EnhancedVideoCard } from '@/types';
+import type { Work, EnhancedStoryboardContent, EnhancedVideoCardsContent, EnhancedVideoCard, Character } from '@/types';
 import ToolLayout from '@/components/layouts/ToolLayout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';

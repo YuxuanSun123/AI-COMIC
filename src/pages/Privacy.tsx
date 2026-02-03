@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Privacy() {
   const { t } = useLanguage();
