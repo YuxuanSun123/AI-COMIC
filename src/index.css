@@ -11,7 +11,7 @@
 
 @layer base {
   :root {
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     
     /* 浅色背景主题 - 舒适的浅灰白色 */
     --background: 0 0% 98%;
@@ -114,10 +114,17 @@
     --sidebar-accent-foreground: 280 20% 95%;
     --sidebar-border: 270 40% 18%;
     --sidebar-ring: 270 80% 60%;
+    
+    /* 深色模式渐变 */
+    --gradient-background: linear-gradient(to bottom, hsl(270 50% 8%), hsl(270 50% 5%));
   }
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   * {
     @apply border-border;
   }
@@ -216,5 +223,22 @@
   
   [role="slider"]:hover {
     transform: scale(1.1);
+  }
+
+  /* 动画延迟工具类 */
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  /* 背景网格图案 */
+  .bg-grid-pattern {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
+                      linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px);
+    mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
   }
 }

@@ -8,8 +8,13 @@ type TableData = User | Work | News | Link;
 class TableApi {
   // 获取表数据
   private getTable(table: TableName): TableData[] {
-    const data = localStorage.getItem(table);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(table);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error(`Failed to parse table data for ${table}:`, e);
+      return [];
+    }
   }
 
   // 保存表数据

@@ -13,16 +13,25 @@ export interface I18nTexts {
   studio: string;
   tools: string;
   scriptGenerator: string;
+  scriptGeneratorDesc: string;
   storyboardGenerator: string;
+  storyboardGeneratorDesc: string;
+  assetsGenerator: string;
+  assetsGeneratorDesc: string;
   videoCards: string;
   editPlan: string;
   editing: string;
+  animeGenerator: string;
+  comicGenerator: string;
   links: string;
   pricing: string;
   about: string;
   contact: string;
   privacy: string;
   terms: string;
+  disclaimer: string;
+  icp: string;
+  security: string;
   admin: string;
   
   // 用户相关
@@ -158,6 +167,46 @@ export interface I18nTexts {
   contactUs: string;
   privacyPolicy: string;
   termsOfService: string;
+
+  // External Tools Page
+  visitWebsite: string;
+  externalToolsPageIntro: string;
+  imageGeneration: string;
+  imageGenerationDesc: string;
+  videoGeneration: string;
+  videoGenerationDesc: string;
+
+  // Home Page Specific
+  newGenerationPlatform: string;
+  startCreating: string;
+  learnMore: string;
+  coreCreativeTools: string;
+  oneStopSolution: string;
+  externalToolsLibrary: string;
+  externalToolsDesc: string;
+  exploreTools: string;
+  creativeWorkflow: string;
+  workflowDesc: string;
+  workflowStep1: string;
+  workflowStep1Desc: string;
+  workflowStep2: string;
+  workflowStep2Desc: string;
+  workflowStep3: string;
+  workflowStep3Desc: string;
+  workflowStep4: string;
+  workflowStep4Desc: string;
+  whyChooseUs: string;
+  whyChooseUsDesc: string;
+  aiDrivenCreation: string;
+  aiDrivenCreationDesc: string;
+  rapidIteration: string;
+  rapidIterationDesc: string;
+  professionalStoryboard: string;
+  professionalStoryboardDesc: string;
+  multiFormatExport: string;
+  multiFormatExportDesc: string;
+  readyToStart: string;
+  joinCommunity: string;
 }
 
 export const i18n: Record<Language, I18nTexts> = {
@@ -170,16 +219,25 @@ export const i18n: Record<Language, I18nTexts> = {
     studio: '创作工坊',
     tools: '工具',
     scriptGenerator: '剧本生成器',
+    scriptGeneratorDesc: '从创意到剧本的全流程AI辅助创作',
     storyboardGenerator: '分镜生成器',
+    storyboardGeneratorDesc: '将剧本转化为分镜，自动拆解镜头与画面',
+    assetsGenerator: '角色与分镜生成',
+    assetsGeneratorDesc: '生成角色立绘、设计分镜提示词与镜头卡',
     videoCards: '镜头卡',
     editPlan: '剪辑合成',
     editing: '剪辑合成',
+    animeGenerator: '动漫生成',
+    comicGenerator: '漫画生成',
     links: '友情链接',
     pricing: '会员方案',
     about: '关于我们',
     contact: '联系我们',
     privacy: '隐私政策',
-    terms: '使用条款',
+    terms: '服务条款',
+    disclaimer: '免责声明',
+    icp: '京ICP备XXXXXXXX号-1',
+    security: '京公网安备 XXXXXXXXXXXXXX号',
     admin: '后台管理',
     
     login: '登录',
@@ -303,7 +361,46 @@ export const i18n: Record<Language, I18nTexts> = {
     aboutUs: '关于我们',
     contactUs: '联系我们',
     privacyPolicy: '隐私政策',
-    termsOfService: '使用条款'
+    termsOfService: '使用条款',
+
+    // External Tools Page
+    visitWebsite: '访问官网',
+    imageGeneration: 'AI 绘画 (Image Generation)',
+    imageGenerationDesc: '用于生成角色立绘、场景背景、道具资产等静态图像',
+    videoGeneration: 'AI 视频 (Video Generation)',
+    videoGenerationDesc: '让静态分镜动起来，生成转场动画或动态背景',
+
+    // Home Page Specific
+    newGenerationPlatform: '新一代 AI 漫剧创作工作台',
+    startCreating: '开始创作',
+    learnMore: '了解更多',
+    coreCreativeTools: '核心创作工具',
+    oneStopSolution: '满足漫剧创作全流程的一站式解决方案',
+    externalToolsLibrary: '外部创作工具库',
+    externalToolsDesc: '精选全球顶尖 AI 创作工具，辅助您将漫剧创意转化为极致视听盛宴',
+    exploreTools: '探索工具',
+    creativeWorkflow: '创作流程',
+    workflowDesc: '简单四步，让创意落地',
+    workflowStep1: '创意构思',
+    workflowStep1Desc: '输入故事大纲或核心创意',
+    workflowStep2: '剧本生成',
+    workflowStep2Desc: 'AI 扩写生成标准影视剧本',
+    workflowStep3: '分镜设计',
+    workflowStep3Desc: '自动拆解镜头，生成分镜画面',
+    workflowStep4: '资产生成',
+    workflowStep4Desc: '生成角色立绘与最终画面',
+    whyChooseUs: '为什么选择我们',
+    whyChooseUsDesc: '智能化的创作流程，释放您的无限创意',
+    aiDrivenCreation: 'AI 驱动创作',
+    aiDrivenCreationDesc: '利用最先进的大语言模型，辅助您完成从创意到剧本的全流程创作',
+    rapidIteration: '极速迭代',
+    rapidIterationDesc: '几秒钟内生成多个分镜方案，让您的创意快速落地',
+    professionalStoryboard: '专业分镜',
+    professionalStoryboardDesc: '自动生成符合影视工业标准的镜头语言和画面描述',
+    multiFormatExport: '多格式导出',
+    multiFormatExportDesc: '支持导出 PDF、Excel 等多种格式，方便团队协作',
+    readyToStart: '准备好开始创作了吗？',
+    joinCommunity: '加入我们的创作者社区，探索 AI 漫剧创作的无限可能。'
   },
   
   en: {
@@ -315,7 +412,11 @@ export const i18n: Record<Language, I18nTexts> = {
     studio: 'Workshop',
     tools: 'Tools',
     scriptGenerator: 'Script Generator',
+    scriptGeneratorDesc: 'From story idea to full script, AI assisted creation',
     storyboardGenerator: 'Storyboard Generator',
+    storyboardGeneratorDesc: 'Convert script to storyboard, plan shots',
+    assetsGenerator: 'Character & Assets',
+    assetsGeneratorDesc: 'Generate character art, storyboard prompts and shot cards',
     videoCards: 'Video Cards',
     editPlan: 'Edit Plan',
     editing: 'Editing',
@@ -325,6 +426,9 @@ export const i18n: Record<Language, I18nTexts> = {
     contact: 'Contact Us',
     privacy: 'Privacy Policy',
     terms: 'Terms of Service',
+    disclaimer: 'Disclaimer',
+    icp: 'ICP License No. XXXXXXXX',
+    security: 'Public Security Filing No. XXXXXXXX',
     admin: 'Admin',
     
     login: 'Login',
@@ -448,7 +552,47 @@ export const i18n: Record<Language, I18nTexts> = {
     aboutUs: 'About Us',
     contactUs: 'Contact Us',
     privacyPolicy: 'Privacy Policy',
-    termsOfService: 'Terms of Service'
+    termsOfService: 'Terms of Service',
+
+    // External Tools Page
+    visitWebsite: 'Visit Website',
+    imageGeneration: 'AI Image Generation',
+    imageGenerationDesc: 'Generate character art, scene backgrounds, and assets',
+    videoGeneration: 'AI Video Generation',
+    videoGenerationDesc: 'Animate static storyboards, generate transitions or dynamic backgrounds',
+
+    // Home Page Specific
+    newGenerationPlatform: 'Next-Gen AI Comic Creation Platform',
+    startCreating: 'Start Creating',
+    learnMore: 'Learn More',
+    coreCreativeTools: 'Core Creative Tools',
+    oneStopSolution: 'One-stop solution for all comic creation needs',
+    externalToolsLibrary: 'External Tools Library',
+    externalToolsDesc: 'Curated top AI image and video generation tools to assist production',
+    exploreTools: 'Explore Tools',
+    creativeWorkflow: 'Creative Workflow',
+    workflowDesc: 'Four simple steps to turn ideas into reality',
+    workflowStep1: 'Ideation',
+    workflowStep1Desc: 'Input story outline or core ideas',
+    workflowStep2: 'Script Gen',
+    workflowStep2Desc: 'AI expands to standard screenplay',
+    workflowStep3: 'Storyboard',
+    workflowStep3Desc: 'Auto-breakdown shots and visuals',
+    workflowStep4: 'Asset Gen',
+    workflowStep4Desc: 'Generate characters and final art',
+    whyChooseUs: 'Why Choose',
+    whyChooseUsDesc: 'Intelligent workflow to unleash your creativity',
+    aiDrivenCreation: 'AI Driven',
+    aiDrivenCreationDesc: 'Advanced LLMs to assist the full creation process from idea to script',
+    rapidIteration: 'Rapid Iteration',
+    rapidIterationDesc: 'Generate multiple storyboard options in seconds',
+    professionalStoryboard: 'Pro Storyboard',
+    professionalStoryboardDesc: 'Auto-generate industry-standard cinematic language and descriptions',
+    multiFormatExport: 'Multi-Export',
+    multiFormatExportDesc: 'Support PDF, Excel and more for team collaboration',
+    readyToStart: 'Ready to Start Creating?',
+    joinCommunity: 'Join our creator community and explore infinite possibilities of AI comic creation.',
+    startFreeTrial: 'Start Free Trial'
   }
 };
 

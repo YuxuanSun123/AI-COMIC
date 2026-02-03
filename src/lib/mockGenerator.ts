@@ -594,6 +594,7 @@ export async function mockGenerateVideoCards(
     negative_prompt: string;
     notes: string;
   }> = [];
+  const nameSet = new Set<string>();
 
   // 从shots生成cards（一一对应）
   if (source.shots && source.shots.length > 0) {
@@ -633,10 +634,96 @@ export async function mockGenerateVideoCards(
         negative_prompt: '',
         notes: ''
       });
+
+      // 统计对白中的“姓名：内容”模式
+      if (shot.dialogue) {
+        const lines = String(shot.dialogue).split(/\n/);
+        lines.forEach(line => {
+          const m = line.match(/^([\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z\s]{0,15})[：:]/);
+          if (m && m[1]) {
+            nameSet.add(m[1].trim());
+          }
+        });
+      }
+      
+      // 尝试从动作描述中提取可能的角色名（简单的启发式：大写字母开头的单词或常见指代）
+      // 这里仅做简单演示，实际需要更强的NLP
+      if (shot.action) {
+         // 简单假设：如果动作描述中包含已知的名字，就不用管；如果包含新的看起来像名字的词...
+         // Mock环境下简化处理，只依赖对白提取的显式名字，或者根据genre生成几个默认角色
+      }
     }
   }
 
-  return { cards };
+  // 如果没有提取到任何角色（可能是无对白分镜），生成几个默认角色
+  if (nameSet.size === 0) {
+    if (isZh) {
+      nameSet.add('主角');
+      nameSet.add('配角');
+    } else {
+      nameSet.add('Protagonist');
+      nameSet.add('Sidekick');
+    }
+  }
+
+  const characters = Array.from(nameSet).map(n => generateMockCharacter(n, genre, isZh));
+
+  return { cards, characters };
+}
+
+/**
+ * 生成Mock角色详情
+ */
+function generateMockCharacter(name: string, genre: string, isZh: boolean): { name: string; traits: string; relation: string } {
+  // 预设的性格库
+  const traitsMap: Record<string, string[]> = {
+    romance: isZh 
+      ? ['温柔体贴，眼神深情', '活泼开朗，喜欢恶作剧', '高冷傲娇，内心柔软', '成熟稳重，值得信赖'] 
+      : ['Gentle and caring, deep eyes', 'Bubbly and outgoing, likes pranks', 'Cool and tsundere, soft inside', 'Mature and reliable'],
+    scifi: isZh 
+      ? ['理智冷静，技术宅', '果断勇敢，富有领袖气质', '神秘莫测，拥有特殊能力', '忠诚可靠，执行力强'] 
+      : ['Rational and calm, tech-savvy', 'Decisive and brave, leadership material', 'Mysterious, has special abilities', 'Loyal and reliable'],
+    mystery: isZh 
+      ? ['敏锐多疑，观察力强', '看似普通，实则深藏不露', '焦虑神经质，容易惊慌', '沉稳老练，经验丰富'] 
+      : ['Sharp and suspicious, observant', 'Seemingly ordinary, hiding secrets', 'Anxious and neurotic, easily panicked', 'Calm and experienced'],
+    default: isZh 
+      ? ['性格开朗，乐于助人', '沉默寡言，行动派', '幽默风趣，气氛组', '认真严谨，一丝不苟'] 
+      : ['Outgoing and helpful', 'Silent type, action-oriented', 'Humorous, mood maker', 'Serious and meticulous']
+  };
+
+  // 预设的关系库
+  const relationsMap: Record<string, string[]> = {
+    romance: isZh 
+      ? ['青梅竹马', '暗恋对象', '竞争对手', '偶遇的路人'] 
+      : ['Childhood friend', 'Crush', 'Rival', 'Passerby'],
+    family: isZh 
+      ? ['父亲', '母亲', '兄弟姐妹', '亲戚'] 
+      : ['Father', 'Mother', 'Sibling', 'Relative'],
+    campus: isZh 
+      ? ['同班同学', '社团学长', '辅导员', '转校生'] 
+      : ['Classmate', 'Club senior', 'Counselor', 'Transfer student'],
+    default: isZh 
+      ? ['主要角色', '关键证人', '反派', '路人角色'] 
+      : ['Main Character', 'Key Witness', 'Villain', 'NPC']
+  };
+
+  const genreKey = (traitsMap[genre] ? genre : 'default');
+  const availableTraits = traitsMap[genreKey] || traitsMap['default'];
+  const availableRelations = relationsMap[genreKey] || relationsMap['default'];
+
+  // 简单的哈希选择，保证同一个名字每次生成的结果一致
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const traitIndex = Math.abs(hash) % availableTraits.length;
+  const relationIndex = Math.abs(hash) % availableRelations.length;
+
+  return {
+    name,
+    traits: availableTraits[traitIndex],
+    relation: availableRelations[relationIndex]
+  };
 }
 
 /**
@@ -826,7 +913,6 @@ export async function mockGenerateEditPlan(
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   const { lang, genre, source, params } = payload;
-  const { pace, target_total_sec, transition_style, audio_style, subtitle_density } = params;
   const isZh = lang === 'zh';
 
   const items: Array<{
@@ -843,65 +929,21 @@ export async function mockGenerateEditPlan(
 
   // 从cards生成items（一一对应）
   if (source.cards && source.cards.length > 0) {
-    // 第一步：计算每条的原始时长
-    const rawDurations = source.cards.map((card: any) => {
-      return calculateRawDuration(card, pace, isZh);
-    });
-
-    // 第二步：按比例缩放到target_total_sec
-    const totalRaw = rawDurations.reduce((sum: number, d: number) => sum + d, 0);
-    const scale = target_total_sec / totalRaw;
-    let durations = rawDurations.map((d: number) => {
-      return Math.max(1, Math.min(8, Math.round(d * scale)));
-    });
-
-    // 第三步：修正误差
-    let totalDuration = durations.reduce((sum: number, d: number) => sum + d, 0);
-    let diff = target_total_sec - totalDuration;
-    let index = 0;
-    while (diff !== 0 && index < durations.length) {
-      if (diff > 0) {
-        if (durations[index] < 8) {
-          durations[index]++;
-          diff--;
-        }
-      } else {
-        if (durations[index] > 1) {
-          durations[index]--;
-          diff++;
-        }
-      }
-      index++;
-      if (index >= durations.length) index = 0;
-      // 防止死循环
-      if (Math.abs(diff) > durations.length * 2) break;
-    }
-
-    // 第四步：生成items
     for (let i = 0; i < source.cards.length; i++) {
       const card = source.cards[i];
       
       // 生成asset_need
       const asset_need = generateAssetNeed(card, isZh);
 
-      // 生成voice_sfx
-      const voice_sfx = generateVoiceSfx(card, audio_style, isZh);
-
-      // 生成transition
-      const transition = generateTransition(card, transition_style, i, source.cards.length, isZh);
-
-      // 生成caption_subtitle
-      const caption_subtitle = generateCaptionSubtitle(card, subtitle_density, isZh);
-
       items.push({
         item_no: i + 1,
         shot_ref: card.shot_ref || (i + 1),
         source_prompt_ref: card.card_no || (i + 1),
         asset_need,
-        voice_sfx,
-        transition,
-        duration_sec: durations[i],
-        caption_subtitle,
+        voice_sfx: '',
+        transition: 'cut',
+        duration_sec: 4,
+        caption_subtitle: card.dialogue_voiceover || '',
         notes: ''
       });
     }
@@ -910,52 +952,7 @@ export async function mockGenerateEditPlan(
   return { items };
 }
 
-/**
- * 计算原始时长（根据pace和内容关键词）
- */
-function calculateRawDuration(card: any, pace: string, isZh: boolean): number {
-  // 基础时长
-  let base = 2.5;
-  if (pace === 'slow') base = 3.5;
-  else if (pace === 'fast') base = 1.8;
 
-  // 根据内容关键词加权
-  const content = `${card.visual_desc} ${card.character_action} ${card.lighting_mood} ${card.camera_desc}`.toLowerCase();
-  
-  // 动作关键词
-  const actionKeywords = isZh
-    ? ['打斗', '爆炸', '追逐', '冲突', '战斗', '奔跑', '逃跑']
-    : ['fight', 'explosion', 'chase', 'conflict', 'battle', 'run', 'escape'];
-  
-  // 情绪关键词
-  const emotionKeywords = isZh
-    ? ['情绪', '沉默', '凝视', '回忆', '思考', '哭泣', '微笑']
-    : ['emotion', 'silence', 'gaze', 'memory', 'think', 'cry', 'smile'];
-  
-  // 转场关键词
-  const transitionKeywords = isZh
-    ? ['转场', '闪回', '蒙太奇', '切换', '过渡']
-    : ['transition', 'flashback', 'montage', 'switch', 'fade'];
-
-  let bonus = 0;
-  
-  // 检查动作关键词
-  if (actionKeywords.some(kw => content.includes(kw))) {
-    bonus += 0.6;
-  }
-  
-  // 检查情绪关键词
-  if (emotionKeywords.some(kw => content.includes(kw))) {
-    bonus += pace === 'slow' ? 0.6 : 0.4;
-  }
-  
-  // 检查转场关键词
-  if (transitionKeywords.some(kw => content.includes(kw))) {
-    bonus += 0.3;
-  }
-
-  return base + bonus;
-}
 
 /**
  * 生成素材需求
@@ -982,213 +979,3 @@ function generateAssetNeed(card: any, isZh: boolean): string {
   return isZh ? parts.join('；') : parts.join('; ');
 }
 
-/**
- * 生成配音/音效
- */
-function generateVoiceSfx(card: any, audio_style: string, isZh: boolean): string {
-  const parts: string[] = [];
-
-  // 处理对白/旁白
-  if (card.dialogue_voiceover && card.dialogue_voiceover.trim() && card.dialogue_voiceover !== '（无对白）' && card.dialogue_voiceover !== '(No dialogue)') {
-    const dialogue = card.dialogue_voiceover.trim();
-    if (isZh) {
-      if (dialogue.includes('旁白') || dialogue.includes('：')) {
-        parts.push(dialogue);
-      } else {
-        parts.push(`对白：${dialogue}`);
-      }
-    } else {
-      if (dialogue.includes('Narration') || dialogue.includes(':')) {
-        parts.push(dialogue);
-      } else {
-        parts.push(`Dialogue: ${dialogue}`);
-      }
-    }
-  }
-
-  // 生成环境音（根据audio_style）
-  if (audio_style === 'rich' || audio_style === 'dramatic') {
-    const ambience = generateAmbience(card, isZh);
-    if (ambience) {
-      parts.push(ambience);
-    }
-  }
-
-  if (parts.length === 0) {
-    return isZh ? '（无音效）' : '(No audio)';
-  }
-
-  return isZh ? parts.join('；') : parts.join('; ');
-}
-
-/**
- * 生成环境音
- */
-function generateAmbience(card: any, isZh: boolean): string {
-  const content = `${card.visual_desc} ${card.lighting_mood}`.toLowerCase();
-
-  if (isZh) {
-    const ambienceMap: Record<string, string[]> = {
-      night: ['环境声：夜风', '环境声：虫鸣', '环境声：远处车流'],
-      street: ['环境声：人群嘈杂', '环境声：车流', '环境声：脚步声'],
-      rain: ['环境声：雨声', '环境声：雷声', '环境声：水滴'],
-      indoor: ['环境声：空调', '环境声：脚步回声', '环境声：门响'],
-      tech: ['环境声：电流', '环境声：机械运转', '环境声：电子音'],
-      nature: ['环境声：鸟鸣', '环境声：风声', '环境声：流水']
-    };
-
-    for (const [key, sounds] of Object.entries(ambienceMap)) {
-      if (content.includes(key) || content.includes(key === 'night' ? '夜' : key === 'street' ? '街' : key === 'rain' ? '雨' : key === 'indoor' ? '室内' : key === 'tech' ? '科技' : '自然')) {
-        return sounds[Math.floor(Math.random() * sounds.length)];
-      }
-    }
-
-    return '环境声：背景音';
-  } else {
-    const ambienceMap: Record<string, string[]> = {
-      night: ['Ambience: night wind', 'Ambience: crickets', 'Ambience: distant traffic'],
-      street: ['Ambience: crowd noise', 'Ambience: traffic', 'Ambience: footsteps'],
-      rain: ['Ambience: rain', 'Ambience: thunder', 'Ambience: water drops'],
-      indoor: ['Ambience: air conditioning', 'Ambience: footstep echoes', 'Ambience: door sounds'],
-      tech: ['Ambience: electrical hum', 'Ambience: machinery', 'Ambience: electronic sounds'],
-      nature: ['Ambience: birds', 'Ambience: wind', 'Ambience: flowing water']
-    };
-
-    for (const [key, sounds] of Object.entries(ambienceMap)) {
-      if (content.includes(key)) {
-        return sounds[Math.floor(Math.random() * sounds.length)];
-      }
-    }
-
-    return 'Ambience: background sound';
-  }
-}
-
-/**
- * 生成转场
- */
-function generateTransition(card: any, transition_style: string, index: number, total: number, isZh: boolean): string {
-  // 最后一条不需要转场
-  if (index === total - 1) {
-    return isZh ? '无' : 'none';
-  }
-
-  const content = `${card.lighting_mood} ${card.visual_desc}`.toLowerCase();
-  
-  // 根据transition_style确定概率分布
-  let transitions: string[] = [];
-  let weights: number[] = [];
-
-  if (transition_style === 'clean') {
-    transitions = ['cut', 'fade'];
-    weights = [0.8, 0.2];
-  } else if (transition_style === 'cinematic') {
-    transitions = ['cut', 'fade', 'flash'];
-    weights = [0.6, 0.3, 0.1];
-  } else if (transition_style === 'dynamic') {
-    transitions = ['cut', 'whip', 'flash', 'glitch'];
-    weights = [0.5, 0.25, 0.15, 0.1];
-  }
-
-  // 根据lighting_mood/情绪偏置
-  const tensionKeywords = isZh
-    ? ['紧张', '惊悚', '追逐', '冲突', '危险']
-    : ['tense', 'thriller', 'chase', 'conflict', 'danger'];
-  
-  const softKeywords = isZh
-    ? ['抒情', '回忆', '温柔', '柔和', '浪漫']
-    : ['lyrical', 'memory', 'gentle', 'soft', 'romantic'];
-
-  const isTension = tensionKeywords.some(kw => content.includes(kw));
-  const isSoft = softKeywords.some(kw => content.includes(kw));
-
-  if (isTension) {
-    // 偏向cut/whip/flash
-    if (transitions.includes('cut')) {
-      const cutIndex = transitions.indexOf('cut');
-      weights[cutIndex] += 0.1;
-    }
-    if (transitions.includes('whip')) {
-      const whipIndex = transitions.indexOf('whip');
-      weights[whipIndex] += 0.05;
-    }
-  } else if (isSoft) {
-    // 偏向fade
-    if (transitions.includes('fade')) {
-      const fadeIndex = transitions.indexOf('fade');
-      weights[fadeIndex] += 0.15;
-    }
-  }
-
-  // 归一化权重
-  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-  weights = weights.map(w => w / totalWeight);
-
-  // 按权重随机选择
-  const rand = Math.random();
-  let cumulative = 0;
-  for (let i = 0; i < transitions.length; i++) {
-    cumulative += weights[i];
-    if (rand <= cumulative) {
-      return transitions[i];
-    }
-  }
-
-  return transitions[0];
-}
-
-/**
- * 生成字幕要点
- */
-function generateCaptionSubtitle(card: any, subtitle_density: string, isZh: boolean): string {
-  // 从dialogue_voiceover提取
-  let text = '';
-  if (card.dialogue_voiceover && card.dialogue_voiceover.trim() && card.dialogue_voiceover !== '（无对白）' && card.dialogue_voiceover !== '(No dialogue)') {
-    text = card.dialogue_voiceover.trim();
-    
-    // 移除"旁白："、"对白："等前缀
-    if (isZh) {
-      text = text.replace(/^(旁白|对白|角色)：/, '');
-    } else {
-      text = text.replace(/^(Narration|Dialogue|Character):\s*/, '');
-    }
-  }
-
-  // 如果没有对白，从visual_desc提取关键词
-  if (!text) {
-    text = card.visual_desc || '';
-  }
-
-  // 根据subtitle_density控制长度
-  if (subtitle_density === 'low') {
-    // 只保留关键一句（≤12字）
-    if (isZh) {
-      text = text.substring(0, 12);
-    } else {
-      const words = text.split(' ').slice(0, 6);
-      text = words.join(' ');
-    }
-  } else if (subtitle_density === 'mid') {
-    // 关键句 + 情绪词（≤18字）
-    if (isZh) {
-      text = text.substring(0, 18);
-    } else {
-      const words = text.split(' ').slice(0, 10);
-      text = words.join(' ');
-    }
-  } else if (subtitle_density === 'high') {
-    // 可多一句提示（≤26字）
-    if (isZh) {
-      text = text.substring(0, 26);
-    } else {
-      const words = text.split(' ').slice(0, 15);
-      text = words.join(' ');
-    }
-  }
-
-  if (!text) {
-    return isZh ? '（无字幕）' : '(No subtitle)';
-  }
-
-  return text;
-}

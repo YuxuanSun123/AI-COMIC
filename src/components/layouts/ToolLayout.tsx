@@ -7,9 +7,10 @@ interface ToolLayoutProps {
   leftPanel?: ReactNode; // 改为可选
   centerPanel: ReactNode;
   rightPanel: ReactNode;
+  transparentCenter?: boolean; // 是否移除中间面板的卡片样式
 }
 
-export default function ToolLayout({ leftPanel, centerPanel, rightPanel }: ToolLayoutProps) {
+export default function ToolLayout({ leftPanel, centerPanel, rightPanel, transparentCenter = false }: ToolLayoutProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* 使用 flex 布局，避免多个滚动条 */}
@@ -29,12 +30,18 @@ export default function ToolLayout({ leftPanel, centerPanel, rightPanel }: ToolL
 
         {/* 中间面板 - 编辑/生成区域 */}
         <div className="flex-1 min-w-0">
-          <Card className="bg-card border-border p-8 shadow-card">
-            {/* 使用自然滚动，不限制高度 */}
-            <div className="space-y-4">
-              {centerPanel}
-            </div>
-          </Card>
+          {transparentCenter ? (
+             <div className="space-y-4 p-0">
+               {centerPanel}
+             </div>
+          ) : (
+            <Card className="bg-card border-border p-8 shadow-card">
+              {/* 使用自然滚动，不限制高度 */}
+              <div className="space-y-4">
+                {centerPanel}
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* 右侧面板 - 参数设置 */}

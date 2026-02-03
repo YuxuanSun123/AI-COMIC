@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, FilePlus, Film } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, FilePlus, Film, BookOpen, FileText, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from "motion/react";
 
 // 本地扩展类型，用于UI动画的唯一ID
@@ -364,50 +364,100 @@ export default function ScriptGenerator() {
   // 左栏：题材、语言、来源作品选择
   const leftPanel = (
     <div className="space-y-6">
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">题材类型</Label>
-        <Select value={genre} onValueChange={setGenre}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {genres.map(g => (
-              <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* 题材类型 */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="font-semibold text-foreground text-lg flex items-center">
+            <span className="bg-primary/10 p-1.5 rounded-md mr-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+            </span>
+            题材设定
+          </Label>
+        </div>
+        
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+           <div className="p-3 bg-muted/30 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+             基本信息
+           </div>
+           <div className="p-4 space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground mb-2 block">题材类型</Label>
+                <Select value={genre} onValueChange={setGenre}>
+                  <SelectTrigger className="bg-background border-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {genres.map(g => (
+                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground mb-2 block">语言</Label>
+                <Select value={selectedLang} onValueChange={(v) => setSelectedLang(v as 'zh' | 'en')}>
+                  <SelectTrigger className="bg-background border-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zh">中文</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+           </div>
+        </div>
       </div>
 
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">语言</Label>
-        <Select value={selectedLang} onValueChange={(v) => setSelectedLang(v as 'zh' | 'en')}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="zh">中文</SelectItem>
-            <SelectItem value="en">English</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* 来源作品 */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div className="flex items-center justify-between">
+            <Label className="font-semibold text-foreground text-lg flex items-center">
+              <span className="bg-primary/10 p-1.5 rounded-md mr-2">
+                <FileText className="h-4 w-4 text-primary" />
+              </span>
+              来源作品
+            </Label>
+        </div>
+        
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+             <div className="p-3 bg-muted/30 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+               可选来源
+             </div>
+             <div className="p-4">
+                <Select value={sourceWorkId || 'none'} onValueChange={(v) => v !== 'none' && loadFromSource(v)}>
+                  <SelectTrigger className="bg-background border-input">
+                    <SelectValue placeholder="选择已有剧本..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">无</SelectItem>
+                    {scriptWorks.map(work => (
+                      <SelectItem key={work.id} value={work.id}>{work.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  选择后将载入该作品的设定
+                </p>
+             </div>
+        </div>
       </div>
 
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">来源作品（可选）</Label>
-        <Select value={sourceWorkId || 'none'} onValueChange={(v) => v !== 'none' && loadFromSource(v)}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue placeholder="选择已有剧本..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">无</SelectItem>
-            {scriptWorks.map(work => (
-              <SelectItem key={work.id} value={work.id}>{work.title}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-2">
-          选择后将载入该作品的设定
-        </p>
-      </div>
+      {sourceWorkId && (
+        <div className="bg-primary/5 rounded-lg border border-primary/10 p-4 space-y-3">
+          <Label className="font-semibold text-primary flex items-center text-sm">
+            <CheckCircle2 className="w-3 h-3 mr-1.5" />
+            已加载来源
+          </Label>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+               <span className="text-muted-foreground">ID</span>
+               <span className="font-mono text-xs">{sourceWorkId.substring(0, 8)}...</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -562,15 +612,44 @@ export default function ScriptGenerator() {
 
           {/* 结果编辑器 */}
       {scriptText && (
-        <div>
-          <Label className="font-semibold text-foreground mb-3 block">生成结果（可编辑）</Label>
-          <Textarea
-            value={scriptText}
-            onChange={(e) => setScriptText(e.target.value)}
-            rows={20}
-            className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors font-mono text-sm"
-          />
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <Label className="font-semibold text-foreground text-lg flex items-center">
+              <span className="bg-primary/10 p-1.5 rounded-md mr-2">
+                <span className="text-primary text-sm font-bold">📄</span>
+              </span>
+              生成结果
+            </Label>
+            <div className="flex gap-2">
+               <Button 
+                 variant="ghost" 
+                 size="sm" 
+                 className="text-xs h-8"
+                 onClick={() => {
+                   navigator.clipboard.writeText(scriptText);
+                   toast({ title: "已复制到剪贴板" });
+                 }}
+               >
+                 复制全文
+               </Button>
+            </div>
+          </div>
+          <div className="relative">
+            <Textarea
+              value={scriptText}
+              onChange={(e) => setScriptText(e.target.value)}
+              rows={20}
+              className="bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors font-mono text-sm leading-relaxed p-4 shadow-inner"
+            />
+            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded border border-border">
+              {scriptText.length} 字
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* 操作按钮 */}

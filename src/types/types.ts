@@ -46,6 +46,9 @@ export interface Character {
   name: string; // 角色名
   traits: string; // 性格特征
   relation: string; // 关系/身份
+  appearance: string; // 外貌特征
+  experience: string; // 经历/背景
+  image_url?: string; // 角色样貌图
 }
 
 // 剧本生成参数
@@ -101,6 +104,7 @@ export interface EnhancedStoryboardContent {
   };
   params: StoryboardParams; // 生成参数
   shots: EnhancedShot[]; // 镜头列表
+  characters?: Character[]; // 全剧角色列表
   raw_text?: string; // 原始生成内容（用于调试或解析失败时显示）
   updated_from: {
     source_storyboard_id: string | null; // 来源分镜ID
@@ -152,6 +156,7 @@ export interface EnhancedVideoCardsContent {
   };
   params: VideoCardsParams; // 生成参数
   cards: EnhancedVideoCard[]; // 镜头卡列表
+  characters?: Character[]; // 整篇出现人物（用于角色卡展示）
   raw_text?: string; // 原始生成内容
   updated_from: {
     source_video_cards_id: string | null; // 来源镜头卡ID
@@ -216,11 +221,6 @@ export interface EnhancedEditPlanContent {
 
 // 剪辑计划生成参数
 export interface EditPlanParams {
-  pace: 'slow' | 'normal' | 'fast'; // 节奏
-  target_total_sec: number; // 目标总时长（秒）
-  transition_style: 'clean' | 'cinematic' | 'dynamic'; // 转场风格
-  audio_style: 'minimal' | 'rich' | 'dramatic'; // 音频风格
-  subtitle_density: 'low' | 'mid' | 'high'; // 字幕密度
   temperature: number; // 温度（0-1）
 }
 
@@ -316,7 +316,7 @@ export interface ApiProvider {
 }
 
 // 任务类型
-export type TaskType = 'script' | 'storyboard' | 'video_cards' | 'edit_plan' | 'image_storyboard' | 'image_shot';
+export type TaskType = 'script' | 'storyboard' | 'video_cards' | 'edit_plan' | 'image_storyboard' | 'image_shot' | 'image_generation';
 
 // 输出格式
 export type OutputFormat = 'json' | 'md';

@@ -17,8 +17,11 @@ import LoginDialog from '@/components/auth/LoginDialog';
 import RegisterDialog from '@/components/auth/RegisterDialog';
 import { Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Moon, Sun } from 'lucide-react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const { currentUser, logout } = useAuth();
   const location = useLocation();
@@ -43,7 +46,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         children: [
           { path: '/tools/script', label: t.scriptGenerator },
           { path: '/tools/storyboard', label: t.storyboardGenerator },
-          { path: '/tools/edit', label: t.editing }
+          { path: '/tools/anime', label: t.animeGenerator },
+          { path: '/tools/comic', label: t.comicGenerator },
+          { path: '/tools/external', label: '外部工具库' }
         ]
       },
       { path: '/links', label: t.links },
@@ -53,7 +58,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
     // 调试阶段：始终显示后台管理入口，方便开发调试
     // TODO: 生产环境需要恢复登录验证（只有登录用户可见）
-    items.push({ path: '/admin', label: t.admin || '后台管理' });
+    // items.push({ path: '/admin', label: t.admin || '后台管理' });
     
     /*
     // 生产环境代码：添加后台管理入口（仅登录用户可见）
@@ -73,7 +78,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       '/studio': t.studio,
       '/tools/script': t.scriptGenerator,
       '/tools/storyboard': t.storyboardGenerator,
-      '/tools/edit': t.editing,
+      '/tools/anime': t.animeGenerator,
+      '/tools/comic': t.comicGenerator,
       '/links': t.links,
       '/pricing': t.pricing,
       '/about': t.about,
@@ -143,7 +149,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      {/* 动态背景层 */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
+        {/* 网格纹理 */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.05]" />
+        
+        {/* 动态光晕 */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-blob mix-blend-multiply dark:mix-blend-screen" />
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-screen" />
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-screen" />
+      </div>
+
       {/* 顶部导航栏 */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -159,6 +176,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
           {/* 右侧操作区 */}
           <div className="flex items-center space-x-2 xl:space-x-4">
+            {/* 主题切换 */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                const newTheme = theme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+              }}
+              className="border-border w-9 h-9"
+            >
+              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+
             {/* 语言切换 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -277,15 +309,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <footer className="border-t border-border bg-card/50 mt-auto">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col xl:flex-row justify-between items-center space-y-4 xl:space-y-0">
-            <p className="text-sm text-muted-foreground">
-              © 2026 {t.appTitle}. All rights reserved.
-            </p>
-            <div className="flex space-x-4">
+            <div className="flex flex-col items-center xl:items-start space-y-2">
+              <p className="text-sm text-muted-foreground">
+                © 2026 {t.appTitle}. All rights reserved.
+              </p>
+              {language === 'zh' && (
+                <div className="flex flex-col xl:flex-row items-center space-y-1 xl:space-y-0 xl:space-x-4 text-xs text-muted-foreground/60">
+                  <span>{t.icp}</span>
+                  <span className="hidden xl:inline">|</span>
+                  <span>{t.security}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground">
+                {t.about}
+              </Link>
               <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
                 {t.privacy}
               </Link>
               <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground">
                 {t.terms}
+              </Link>
+              <Link to="/disclaimer" className="text-sm text-muted-foreground hover:text-foreground">
+                {t.disclaimer}
               </Link>
               <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground">
                 {t.contact}

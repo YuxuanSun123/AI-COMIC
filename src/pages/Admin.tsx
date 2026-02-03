@@ -63,18 +63,18 @@ export default function Admin() {
 
     // Auto-inject Google Vertex AI (Image Generation)
     const googleProviderId = 'provider_google_vertex_ai';
-    const googleApiKey = 'AQ.Ab8RN6IuMNC-EpMuMkohlMUuTLZAKNq5kuqvG9ibf2XHQgMsdw';
+    const googleApiKey = 'AQ.Ab8RN6KQHMc-n2XNz2qj2EmzeIctmBikq6IovUPEM7h7vFLg9Q';
     // Check if we already have this provider (by ID or Key)
     const existingGoogleIndex = currentProviders.findIndex(p => p.id === googleProviderId || p.api_key === googleApiKey);
     
     const googleProviderConfig: ApiProvider = {
         id: googleProviderId,
         name: 'Google Vertex AI (Image)',
-        type: 'image', // Changed to image as requested
+        type: 'image',
         enabled: true,
         base_url: 'https://generativelanguage.googleapis.com/v1beta',
-        api_key: googleApiKey,
-        default_model: 'imagen-3.0-generate-001', // Suitable for image generation
+        api_key: 'AIzaSyC7TS8aHjN_WbYRWLj8tsg2mRvhBC-IWuY',
+        default_model: 'gemini-2.0-flash', // For AI Studio API Key, use Gemini 2.0 Native Image Generation
         created_ms: Date.now(),
         updated_ms: Date.now()
     };
@@ -116,6 +116,73 @@ export default function Admin() {
     } else {
         currentProviders.push(deepseekProviderConfig);
     }
+
+    // Auto-inject SiliconFlow Template (Recommended for Flux)
+    const siliconProviderId = 'provider_siliconflow';
+    // Only add if not present to avoid overwriting user settings
+    const existingSiliconIndex = currentProviders.findIndex(p => p.id === siliconProviderId || p.base_url.includes('siliconflow'));
+    
+    if (existingSiliconIndex === -1) {
+         currentProviders.push({
+            id: siliconProviderId,
+            name: 'SiliconFlow (Flux.1) - 国内访问快',
+            type: 'image',
+            enabled: false, // Disabled by default until user adds key
+            base_url: 'https://api.siliconflow.cn/v1',
+            api_key: '', 
+            default_model: 'black-forest-labs/FLUX.1-schnell',
+            created_ms: Date.now(),
+            updated_ms: Date.now()
+        });
+    }
+
+    // Auto-inject Zhipu AI (CogView) Template
+    const zhipuProviderId = 'provider_zhipu';
+    const existingZhipuIndex = currentProviders.findIndex(p => p.id === zhipuProviderId || p.base_url.includes('bigmodel.cn'));
+
+    if (existingZhipuIndex === -1) {
+        currentProviders.push({
+            id: zhipuProviderId,
+            name: '智谱 AI (CogView-3)',
+            type: 'image',
+            enabled: false,
+            base_url: 'https://open.bigmodel.cn/api/paas/v4',
+            api_key: '',
+            default_model: 'cogview-3',
+            created_ms: Date.now(),
+            updated_ms: Date.now()
+        });
+    }
+
+    // Auto-inject Aliyun (Tongyi Wanxiang/Qwen) Template
+    const aliyunProviderId = 'provider_aliyun_wanx';
+    const aliyunApiKey = 'sk-49d45893cee643f39d295a96a4386aca'; // Pre-filled from user request
+    const existingAliyunIndex = currentProviders.findIndex(p => p.id === aliyunProviderId || p.base_url.includes('dashscope'));
+
+    const aliyunProviderConfig: ApiProvider = {
+        id: aliyunProviderId,
+        name: '阿里云 (通义万相 - Qwen)',
+        type: 'image',
+        enabled: true, // Enable by default since we have a key
+        base_url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+        api_key: aliyunApiKey,
+        default_model: 'qwen-image-max',
+        created_ms: Date.now(),
+        updated_ms: Date.now()
+    };
+
+    if (existingAliyunIndex >= 0) {
+        // Update existing if key is missing or to ensure settings
+        if (!currentProviders[existingAliyunIndex].api_key) {
+             currentProviders[existingAliyunIndex] = {
+                ...currentProviders[existingAliyunIndex],
+                ...aliyunProviderConfig,
+                id: currentProviders[existingAliyunIndex].id
+            };
+        }
+    } else {
+        currentProviders.push(aliyunProviderConfig);
+    }
     
     // Save updated providers
     localStorage.setItem('api_providers', JSON.stringify(currentProviders));
@@ -132,12 +199,17 @@ export default function Admin() {
         video_cards: createDefaultRouting(),
         edit_plan: createDefaultRouting(),
         image_storyboard: createDefaultRouting(),
-        image_shot: createDefaultRouting()
+        image_shot: createDefaultRouting(),
+        image_generation: createDefaultRouting()
     };
 
     if (routingStr) {
       try {
         currentRouting = JSON.parse(routingStr);
+        // Ensure image_generation exists in currentRouting if loaded from old config
+        if (currentRouting && !currentRouting.image_generation) {
+            currentRouting.image_generation = createDefaultRouting();
+        }
       } catch (e) {
         console.error('加载Routing失败:', e);
       }
@@ -163,14 +235,14 @@ export default function Admin() {
         }
     });
 
-    // 2. Configure Google for Image Tasks (Image Storyboard, Image Shot)
-    const imageTasks: TaskType[] = ['image_storyboard', 'image_shot'];
+    // 2. Configure Google for Image Tasks (Image Storyboard, Image Shot, Image Generation)
+    const imageTasks: TaskType[] = ['image_storyboard', 'image_shot', 'image_generation'];
     imageTasks.forEach(task => {
         if (currentRouting && currentRouting[task]) {
              if (currentRouting[task].provider_id !== googleProviderId) {
                 currentRouting[task].enabled = true;
                 currentRouting[task].provider_id = googleProviderId;
-                currentRouting[task].model = 'imagen-3.0-generate-001';
+                currentRouting[task].model = 'gemini-2.0-flash'; // Use standard Gemini 2.0 Flash
                 routingUpdated = true;
              }
         }
@@ -666,6 +738,12 @@ export default function Admin() {
 
               <div>
                 <Label>自定义Headers (JSON格式，可选)</Label>
+                <div className="text-xs text-muted-foreground mb-1">
+                    对于 Google Vertex AI，请在此处配置 Project ID 和 Location：
+                    <code className="block bg-muted p-1 rounded mt-1">
+                        {`{"project_id": "YOUR_PROJECT_ID", "location": "us-central1"}`}
+                    </code>
+                </div>
                 <Textarea
                   value={editingProvider.headers_json || ''}
                   onChange={(e) => setEditingProvider({ ...editingProvider, headers_json: e.target.value })}

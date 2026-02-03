@@ -1,19 +1,24 @@
-import Home from './pages/Home';
-import News from './pages/News';
-import NewsDetail from './pages/NewsDetail';
-import Studio from './pages/Studio';
-import ScriptGenerator from './pages/tools/ScriptGenerator';
-import StoryboardGenerator from './pages/tools/StoryboardGenerator';
-import VideoCards from './pages/tools/VideoCards';
-import Editing from './pages/tools/Editing';
-import Links from './pages/Links';
-import Pricing from './pages/Pricing';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import Admin from './pages/Admin';
-import NotFound from './pages/NotFound';
+import { lazy } from 'react';
+
+const Home = lazy(() => import('./pages/Home'));
+const News = lazy(() => import('./pages/News'));
+const NewsDetail = lazy(() => import('./pages/NewsDetail'));
+const Studio = lazy(() => import('./pages/Studio'));
+const ScriptGenerator = lazy(() => import('./pages/tools/ScriptGenerator'));
+const StoryboardGenerator = lazy(() => import('./pages/tools/StoryboardGenerator'));
+const VideoCards = lazy(() => import('./pages/tools/VideoCards'));
+const Editing = lazy(() => import('./pages/tools/Editing'));
+const ExternalToolsPage = lazy(() => import('./pages/tools/ExternalToolsPage'));
+const Links = lazy(() => import('./pages/Links'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Disclaimer = lazy(() => import('./pages/Disclaimer'));
+const Admin = lazy(() => import('./pages/Admin'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const ApiTest = lazy(() => import('./pages/ApiTest'));
 import type { ReactNode } from 'react';
 
 interface RouteConfig {
@@ -56,13 +61,18 @@ const routes: RouteConfig[] = [
   },
   {
     name: 'VideoCards',
-    path: '/tools/video',
+    path: '/tools/video_cards',
     element: <VideoCards />
   },
   {
-    name: 'Editing',
-    path: '/tools/edit',
+    name: 'AssetEditor',
+    path: '/tools/assets',
     element: <Editing />
+  },
+  {
+    name: 'ExternalTools',
+    path: '/tools/external',
+    element: <ExternalToolsPage />
   },
   {
     name: 'Links',
@@ -93,6 +103,16 @@ const routes: RouteConfig[] = [
     name: 'Terms',
     path: '/terms',
     element: <Terms />
+  },
+  {
+    name: 'ApiTest',
+    path: '/api-test',
+    element: <ApiTest />
+  },
+  {
+    name: 'Disclaimer',
+    path: '/disclaimer',
+    element: <Disclaimer />
   },
   {
     name: 'Admin',

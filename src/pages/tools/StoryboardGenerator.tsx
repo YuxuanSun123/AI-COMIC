@@ -6,9 +6,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import tableApi from '@/lib/tableApi';
 import { generate, type StoryboardGenerationResult, type VideoCardsGenerationResult, type ApiResponse } from '@/lib/aiClient';
-import type { Work, EnhancedScriptContent, EnhancedStoryboardContent, EnhancedShot, EnhancedVideoCardsContent, EnhancedVideoCard } from '@/types';
+import type { Work, EnhancedScriptContent, EnhancedStoryboardContent, EnhancedShot, EnhancedVideoCardsContent, EnhancedVideoCard, Character } from '@/types';
 import ToolLayout from '@/components/layouts/ToolLayout';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, FilePlus, Film, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, FilePlus, Film, ArrowUp, ArrowDown, RefreshCw, ExternalLink, Download, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from "motion/react";
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 
@@ -53,6 +54,7 @@ export default function StoryboardGenerator() {
 
   // 生成结果
   const [shots, setShots] = useState<UiShot[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [generatedContent, setGeneratedContent] = useState<EnhancedStoryboardContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [generationLogs, setGenerationLogs] = useState<string[]>([]);
@@ -67,6 +69,7 @@ export default function StoryboardGenerator() {
   const [cardsContent, setCardsContent] = useState<EnhancedVideoCardsContent | null>(null);
   const [vcRawOutput, setVcRawOutput] = useState('');
   const [vcLoading, setVcLoading] = useState(false);
+  const [vcReceivedBytes, setVcReceivedBytes] = useState(0);
 
   // 获取所有剧本作品（用于来源选择）
   const allWorks = tableApi.get('works') as Work[] | Work | null;
@@ -75,6 +78,14 @@ export default function StoryboardGenerator() {
         .filter(w => w.type === 'script' && w.author_id === currentUser?.id)
         .sort((a, b) => b.updated_ms - a.updated_ms)
     : [];
+
+  // 获取所有分镜作品（用于加载）
+  const storyboardWorks = Array.isArray(allWorks)
+    ? allWorks
+        .filter(w => w.type === 'storyboard' && w.author_id === currentUser?.id)
+        .sort((a, b) => b.updated_ms - a.updated_ms)
+    : [];
+
 
   useEffect(() => {
     document.title = `${t.storyboardGenerator} - ${t.appTitle}`;
@@ -148,6 +159,7 @@ export default function StoryboardGenerator() {
     if (content.shots) {
       // 新版结构
       setShots((content.shots || []).map(s => ({ ...s, _ui_id: generateId() })));
+      setCharacters(content.characters || []);
       setShotDensity(content.params?.shot_density || 'standard');
       setVisualStyle(content.params?.visual_style || '国漫');
       setCameraVariety(content.params?.camera_variety || 'mid');
@@ -345,6 +357,7 @@ export default function StoryboardGenerator() {
                 max_shots: maxShots
               },
               shots: response.data.shots,
+              characters: response.data.characters || [],
               raw_text: rawText,
               updated_from: {
                 source_storyboard_id: null
@@ -359,6 +372,7 @@ export default function StoryboardGenerator() {
             }));
 
             setShots(processedShots);
+            setCharacters(response.data.characters || []);
             setGeneratedContent(content);
             // renumberShots(); // 移除此处调用，避免因闭包导致读取旧state覆盖新数据
             setGenerationLogs(prev => [...prev, `处理完成：共生成 ${response.data.shots.length} 个镜头`]);
@@ -413,6 +427,7 @@ export default function StoryboardGenerator() {
       ? {
           ...generatedContent,
           shots: cleanShots,
+          characters: characters,
           raw_text: rawOutput
         }
       : {
@@ -431,6 +446,7 @@ export default function StoryboardGenerator() {
             max_shots: maxShots
           },
           shots: cleanShots,
+          characters: characters,
           raw_text: rawOutput,
           updated_from: {
             source_storyboard_id: null
@@ -489,6 +505,7 @@ export default function StoryboardGenerator() {
       ? {
           ...generatedContent,
           shots: cleanShots,
+          characters: characters,
           raw_text: rawOutput
         }
       : {
@@ -507,6 +524,7 @@ export default function StoryboardGenerator() {
             max_shots: maxShots
           },
           shots: cleanShots,
+          characters: characters,
           raw_text: rawOutput,
           updated_from: {
             source_storyboard_id: null
@@ -542,8 +560,15 @@ export default function StoryboardGenerator() {
     setVcOpen(true);
     setVcLoading(true);
     setVcRawOutput('');
+    setVcReceivedBytes(0);
     try {
+      // 1. 准备发送给AI的数据：强制重新编号，确保 1,2,3... 连续，以便AI更容易处理
       const cleanShots = shots.map(({ _ui_id, ...rest }) => rest);
+      const payloadShots = cleanShots.map((s, i) => ({
+          ...s,
+          shot_no: i + 1 // 强制使用序列号
+      }));
+
       const payload = {
         user: {
           id: currentUser.id,
@@ -554,7 +579,8 @@ export default function StoryboardGenerator() {
         genre: (sourceScript?.content as EnhancedScriptContent)?.genre || 'romance',
         source: {
           storyboard_id: currentWorkId || null,
-          shots: cleanShots
+          shots: payloadShots, // 发送重编号后的列表
+          characters: characters // 传递角色信息
         },
         params: {
           render_style: renderStyle,
@@ -568,45 +594,123 @@ export default function StoryboardGenerator() {
           version: 'prototype'
         }
       };
-      const response = await generate('video_cards', payload) as ApiResponse<VideoCardsGenerationResult & { raw_text?: string }>;
+      const response = await generate('video_cards', payload, (log) => setVcReceivedBytes(prev => prev + log.length)) as ApiResponse<VideoCardsGenerationResult & { raw_text?: string }>;
       
       if (response.ok && response.data) {
         if (response.data.raw_text) {
           setVcRawOutput(response.data.raw_text);
         }
 
-        if (response.data.cards && response.data.cards.length > 0) {
-            const content: EnhancedVideoCardsContent = {
-              lang: sourceScript?.lang || (language as 'zh' | 'en'),
-              genre: (sourceScript?.content as EnhancedScriptContent)?.genre || 'romance',
-              source: {
-                storyboard_id: currentWorkId || null,
-                storyboard_title: title || '未命名分镜',
-                shot_count: cleanShots.length
-              },
-              params: {
-                render_style: renderStyle,
-                character_consistency: characterConsistency,
-                detail_level: detailLevel,
-                camera_emphasis: cameraEmphasis,
-                temperature: vcTemperature
-              },
-              cards: response.data.cards,
-              updated_from: {
-                source_video_cards_id: null
-              }
+        // 2. 解析AI返回的卡片，建立映射
+        // AI看到的镜头编号是 1, 2, 3...
+        const aiCardsMap = new Map();
+        
+        // 辅助函数：标准化卡片数据
+        const processCard = (c: any) => {
+             // 尝试获取匹配键：shot_ref > shot_number > card_no
+             // 因为我们发送的是 1,2,3...，所以我们期望 AI 返回对应的序号
+             let key = c.shot_ref || c.shot_number || c.card_no;
+             
+             // 如果 AI 返回的 key 是字符串且包含非数字（虽然 Number() 会处理，但预防万一），这里假设 AI 返回的是数字或数字字符串
+             if (key) {
+                 aiCardsMap.set(Number(key), c);
+             }
+        };
+
+        if (response.data.cards && Array.isArray(response.data.cards)) {
+             response.data.cards.forEach(processCard);
+        } else if (response.data.prompts && Array.isArray(response.data.prompts)) {
+             (response.data.prompts as any[]).forEach(processCard);
+        }
+
+        // 3. 将 AI 卡片映射回原始镜头列表
+        // cleanShots 保持了原始的 shot_no (可能是 1, 3, 5...)
+        // 我们通过 index (0, 1, 2...) + 1 来查找对应的 AI 卡片 (因为 payloadShots 是 1, 2, 3...)
+        const fullCards: EnhancedVideoCard[] = cleanShots.map((shot, index) => {
+            // 查找逻辑：
+            // 1. 优先使用序列号 (index + 1) 查找，因为这是我们在 payload 中指定的 shot_no
+            // 2. 如果没找到，尝试用原始 shot_no 查找 (防备 AI 居然神奇地通过上下文猜到了原始编号？不太可能但作为兜底)
+            // 3. 最后尝试直接按数组索引取 (如果 AI 返回了纯数组且没写编号)
+            
+            let aiCard = aiCardsMap.get(index + 1);
+            
+            if (!aiCard) {
+                aiCard = aiCardsMap.get(shot.shot_no);
+            }
+            
+            // 如果 Map 匹配全都失败，且 AI 返回的卡片数量与镜头数一致，尝试按顺序强制匹配
+            if (!aiCard && (response.data?.cards?.length === cleanShots.length)) {
+                aiCard = response.data.cards[index];
+            }
+
+            // 智能合并逻辑
+            return {
+                card_no: index + 1, // 重新编号卡片，使其连续
+                shot_ref: shot.shot_no, // 关键：指向原始镜头的 shot_no
+                visual_desc: aiCard?.visual_desc || shot.frame || '',
+                character_action: aiCard?.character_action || shot.action || '',
+                lighting_mood: aiCard?.lighting_mood || '',
+                camera_desc: aiCard?.camera_desc || shot.camera || '',
+                dialogue_voiceover: aiCard?.dialogue_voiceover || shot.dialogue || '',
+                prompt: aiCard?.prompt || '',
+                negative_prompt: aiCard?.negative_prompt || '',
+                notes: aiCard?.notes || shot.notes || ''
             };
-            setCards(response.data.cards);
-            setCardsContent(content);
-            renumberCards();
-            toast({ title: '镜头卡生成成功' });
-        } else if (response.data.raw_text) {
-             toast({ 
-                title: '生成结果格式异常', 
-                description: '已显示原始返回内容',
+        });
+
+        // 处理角色信息：合并/更新
+        let finalCharacters: Character[] = characters;
+        if (response.data?.characters && Array.isArray(response.data.characters)) {
+            finalCharacters = response.data.characters.map(c => {
+                // 尝试查找现有角色以保留未变更的字段（如经历）
+                const existing = characters.find(ec => ec.name === c.name);
+                return {
+                    name: c.name,
+                    traits: c.traits,
+                    relation: c.relation,
+                    // AI可能没返回appearance/experience，优先用AI返回的，否则用旧的，最后空字符串兜底
+                    appearance: c.appearance || existing?.appearance || '',
+                    experience: c.experience || existing?.experience || ''
+                };
+            });
+            setCharacters(finalCharacters);
+        }
+
+        const content: EnhancedVideoCardsContent = {
+          lang: sourceScript?.lang || (language as 'zh' | 'en'),
+          genre: (sourceScript?.content as EnhancedScriptContent)?.genre || 'romance',
+          source: {
+            storyboard_id: currentWorkId || null,
+            storyboard_title: title || '未命名分镜',
+            shot_count: cleanShots.length
+          },
+          params: {
+            render_style: renderStyle,
+            character_consistency: characterConsistency,
+            detail_level: detailLevel,
+            camera_emphasis: cameraEmphasis,
+            temperature: vcTemperature
+          },
+          cards: fullCards,
+          characters: finalCharacters,
+          updated_from: {
+            source_video_cards_id: null
+          }
+        };
+        
+        setCards(fullCards);
+        setCardsContent(content);
+        
+        if (aiCardsMap.size > 0) {
+            toast({ title: `生成完成，覆盖 ${aiCardsMap.size}/${cleanShots.length} 个镜头` });
+        } else {
+            toast({ 
+                title: 'AI返回格式异常，已重置为基础卡片', 
+                description: '您可以尝试重新生成，或手动编辑 Prompt',
                 variant: 'destructive' 
             });
         }
+
       } else {
         toast({
           title: '生成失败',
@@ -689,35 +793,101 @@ export default function StoryboardGenerator() {
     show: { opacity: 1, y: 0 }
   };
 
-  // 左栏：来源剧本选择
+  // 左栏：来源剧本选择 + 加载分镜
   const leftPanel = (
     <div className="space-y-6">
-      <div>
-        <Label className="font-semibold text-foreground mb-3 block">来源剧本</Label>
-        <Select value={sourceScriptId || 'none'} onValueChange={handleSourceScriptChange}>
-          <SelectTrigger className="bg-background border-2 border-border">
-            <SelectValue placeholder="选择剧本..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">无</SelectItem>
-            {scriptWorks.map(work => (
-              <SelectItem key={work.id} value={work.id}>{work.title}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="font-semibold text-foreground text-lg flex items-center">
+              <span className="bg-primary/10 p-1.5 rounded-md mr-2">
+                <Film className="h-4 w-4 text-primary" />
+              </span>
+              分镜加载
+            </Label>
+          </div>
+          
+          <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+             <div className="p-3 bg-muted/30 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+               已保存的分镜
+             </div>
+             <div className="p-4">
+                <Select value={currentWorkId || 'none'} onValueChange={(val) => {
+                    if (val === 'none') {
+                        setCurrentWorkId(null);
+                        setTitle('');
+                        setShots([]);
+                        return;
+                    }
+                    const work = storyboardWorks.find(w => w.id === val);
+                    if (work) loadStoryboardData(work);
+                }}>
+                  <SelectTrigger className="bg-background border-input">
+                    <SelectValue placeholder="选择要继续编辑的分镜..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">新建空白分镜</SelectItem>
+                    {storyboardWorks.map(work => (
+                      <SelectItem key={work.id} value={work.id}>{work.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+             </div>
+          </div>
+      </div>
+
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div className="flex items-center justify-between">
+            <Label className="font-semibold text-foreground text-lg flex items-center">
+              <span className="bg-primary/10 p-1.5 rounded-md mr-2">
+                <FilePlus className="h-4 w-4 text-primary" />
+              </span>
+              来源剧本
+            </Label>
+        </div>
+        
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+             <div className="p-3 bg-muted/30 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+               选择剧本以生成
+             </div>
+             <div className="p-4">
+                <Select value={sourceScriptId || 'none'} onValueChange={handleSourceScriptChange}>
+                  <SelectTrigger className="bg-background border-input">
+                    <SelectValue placeholder="选择剧本..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">无 (直接创作)</SelectItem>
+                    {scriptWorks.map(work => (
+                      <SelectItem key={work.id} value={work.id}>{work.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+             </div>
+        </div>
       </div>
 
       {sourceScript && (
-        <div className="p-4 bg-muted/50 rounded-lg border-2 border-border">
-          <Label className="font-semibold text-foreground mb-2 block">剧本信息</Label>
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <p>标题：<span className="text-foreground font-medium">{sourceScript.title}</span></p>
-            <p>题材：<span className="text-foreground font-medium">{(sourceScript.content as EnhancedScriptContent).genre}</span></p>
-            <p>语言：<span className="text-foreground font-medium">{sourceScript.lang === 'zh' ? '中文' : 'English'}</span></p>
-            <p>更新：<span className="text-foreground font-medium">{new Date(sourceScript.updated_ms).toLocaleDateString()}</span></p>
-            {(sourceScript.content as EnhancedScriptContent).scenes && (
-              <p>场景数：<span className="text-primary font-semibold">{(sourceScript.content as EnhancedScriptContent).scenes.length}</span></p>
-            )}
+        <div className="bg-primary/5 rounded-lg border border-primary/10 p-4 space-y-3">
+          <Label className="font-semibold text-primary flex items-center text-sm">
+            <CheckCircle2 className="w-3 h-3 mr-1.5" />
+            已选择剧本
+          </Label>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">标题</span>
+              <span className="font-medium">{sourceScript.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">题材</span>
+              <Badge variant="outline" className="text-xs">{(sourceScript.content as EnhancedScriptContent).genre}</Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">场景数</span>
+              <span className="font-medium">{(sourceScript.content as EnhancedScriptContent).scenes?.length || 0}</span>
+            </div>
+             <div className="flex justify-between">
+              <span className="text-muted-foreground">更新时间</span>
+              <span className="text-xs text-muted-foreground pt-0.5">{new Date(sourceScript.updated_ms).toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
       )}
@@ -802,6 +972,36 @@ export default function StoryboardGenerator() {
         </motion.div>
       )}
 
+      {/* 角色列表 */}
+      {characters.length > 0 && (
+        <CollapsibleSection title={`角色列表 (${characters.length})`} defaultOpen={true}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {characters.map((char, idx) => (
+                    <Card key={idx} className="p-4 bg-muted/30 border border-border hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="font-bold text-lg text-primary">{char.name}</div>
+                            <Badge variant="outline">{char.relation}</Badge>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                            <div className="bg-background/50 p-2 rounded">
+                                <span className="font-semibold text-foreground/80 block mb-1">性格</span>
+                                <span className="text-muted-foreground">{char.traits}</span>
+                            </div>
+                            <div className="bg-background/50 p-2 rounded">
+                                <span className="font-semibold text-foreground/80 block mb-1">外貌</span>
+                                <span className="text-muted-foreground">{char.appearance}</span>
+                            </div>
+                            <div className="bg-background/50 p-2 rounded">
+                                <span className="font-semibold text-foreground/80 block mb-1">经历</span>
+                                <span className="text-muted-foreground">{char.experience}</span>
+                            </div>
+                        </div>
+                    </Card>
+                ))}
+            </div>
+        </CollapsibleSection>
+      )}
+
       {/* 分镜列表编辑器 */}
       <motion.div
         variants={containerVariants}
@@ -849,93 +1049,105 @@ export default function StoryboardGenerator() {
                 exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
                 whileHover={{ y: -2, transition: { duration: 0.2 } }}
               >
-                <Card className="p-6 mb-4 bg-muted/50 border-2 border-border">
-                  <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label className="font-semibold text-foreground">镜头 {shot.shot_no}</Label>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => moveShot(index, 'up')} disabled={index === 0}>
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => moveShot(index, 'down')} disabled={index === shots.length - 1}>
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteShot(index)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                <Card className="p-0 mb-6 bg-card border border-border hover:shadow-lg transition-all overflow-hidden group">
+                  {/* Card Header */}
+                  <div className="bg-muted/30 px-4 py-3 border-b border-border flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 text-primary font-bold px-3 py-1 rounded-md min-w-[3rem] text-center">
+                        #{shot.shot_no}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground gap-4">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">场景:</span>
+                          <Input
+                            type="number"
+                            value={shot.scene_ref}
+                            onChange={(e) => updateShot(index, 'scene_ref', parseInt(e.target.value) || 1)}
+                            className="h-6 w-12 text-center bg-background border-border p-0"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">时长:</span>
+                          <Input
+                            type="number"
+                            value={shot.duration_sec}
+                            onChange={(e) => updateShot(index, 'duration_sec', parseInt(e.target.value) || 4)}
+                            className="h-6 w-12 text-center bg-background border-border p-0"
+                          />
+                          <span>s</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => moveShot(index, 'up')} disabled={index === 0}>
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => moveShot(index, 'down')} disabled={index === shots.length - 1}>
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => deleteShot(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-sm text-muted-foreground mb-1 block">场景引用</Label>
-                    <Input
-                      type="number"
-                      value={shot.scene_ref}
-                      onChange={(e) => updateShot(index, 'scene_ref', parseInt(e.target.value) || 1)}
-                      className="bg-background border-2 border-border h-10"
-                    />
+                  {/* Card Body */}
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">画面描述 (Visual)</Label>
+                        <Textarea
+                          value={shot.frame}
+                          onChange={(e) => updateShot(index, 'frame', e.target.value)}
+                          rows={3}
+                          className="bg-muted/10 border-border resize-none focus:bg-background transition-colors"
+                          placeholder="描述画面内容、构图..."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">对白/旁白 (Audio)</Label>
+                        <Textarea
+                          value={shot.dialogue}
+                          onChange={(e) => updateShot(index, 'dialogue', e.target.value)}
+                          rows={2}
+                          className="bg-muted/10 border-border resize-none focus:bg-background transition-colors"
+                          placeholder="角色台词或画外音..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">动作 (Action)</Label>
+                          <Input
+                            value={shot.action}
+                            onChange={(e) => updateShot(index, 'action', e.target.value)}
+                            className="bg-muted/10 border-border focus:bg-background transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">运镜 (Camera)</Label>
+                          <Input
+                            value={shot.camera}
+                            onChange={(e) => updateShot(index, 'camera', e.target.value)}
+                            className="bg-muted/10 border-border focus:bg-background transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">备注 (Notes)</Label>
+                        <Input
+                          value={shot.notes}
+                          onChange={(e) => updateShot(index, 'notes', e.target.value)}
+                          className="bg-muted/10 border-border focus:bg-background transition-colors"
+                          placeholder="光影、氛围或其他备注..."
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground mb-1 block">时长（秒）</Label>
-                    <Input
-                      type="number"
-                      value={shot.duration_sec}
-                      onChange={(e) => updateShot(index, 'duration_sec', parseInt(e.target.value) || 4)}
-                      className="bg-background border-2 border-border h-10"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-1 block">画面描述</Label>
-                  <Textarea
-                    value={shot.frame}
-                    onChange={(e) => updateShot(index, 'frame', e.target.value)}
-                    rows={2}
-                    className="bg-background border-2 border-border resize-none"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-1 block">动作</Label>
-                  <Input
-                    value={shot.action}
-                    onChange={(e) => updateShot(index, 'action', e.target.value)}
-                    className="bg-background border-2 border-border h-10"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-1 block">机位/焦段/运动</Label>
-                  <Input
-                    value={shot.camera}
-                    onChange={(e) => updateShot(index, 'camera', e.target.value)}
-                    className="bg-background border-2 border-border h-10"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-1 block">对白/旁白</Label>
-                  <Textarea
-                    value={shot.dialogue}
-                    onChange={(e) => updateShot(index, 'dialogue', e.target.value)}
-                    rows={2}
-                    className="bg-background border-2 border-border resize-none"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-1 block">备注</Label>
-                  <Input
-                    value={shot.notes}
-                    onChange={(e) => updateShot(index, 'notes', e.target.value)}
-                    className="bg-background border-2 border-border h-10"
-                  />
-                </div>
-              </div>
-              </Card>
-            </motion.div>
+                </Card>
+              </motion.div>
           ))}
           </AnimatePresence>
         ) : rawOutput ? (
@@ -1078,16 +1290,67 @@ export default function StoryboardGenerator() {
                 />
               </div>
             </div>
-            <div>
+            <div className="flex gap-2">
               <Button
                 onClick={handleGenerateVideoCards}
                 disabled={vcLoading || shots.length === 0}
-                className="h-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                className="h-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex-1"
               >
                 {vcLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Film className="h-4 w-4 mr-2" />}
                 生成镜头卡
               </Button>
+
+              {cards.length > 0 && !vcLoading && (
+                <Button
+                  onClick={handleSaveVideoCards}
+                  className="h-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white flex-1"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  保存镜头卡
+                </Button>
+              )}
             </div>
+
+            {/* 镜头卡生成状态 */}
+            {(vcLoading || vcReceivedBytes > 0) && (
+                <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    className="mt-4 p-4 bg-muted/50 rounded-lg border border-border"
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                           <span className="font-bold text-sm">GENERATION STATUS</span>
+                           {vcLoading ? (
+                               <Badge variant="secondary" className="animate-pulse">生成中...</Badge>
+                           ) : (
+                               <Badge className="bg-green-600 hover:bg-green-700">生成完成</Badge>
+                           )}
+                        </div>
+                        {vcLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-sm font-mono text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                            <Download className="h-4 w-4" />
+                            <span>已接收数据: {(vcReceivedBytes / 1024).toFixed(2)} KB</span>
+                        </div>
+                        {!vcLoading && cards.length > 0 && (
+                            <div className="flex items-center gap-2 text-green-600 font-semibold">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span>成功生成 {cards.length} 张镜头卡</span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {vcLoading && (
+                        <div className="w-full bg-secondary/30 h-1 mt-3 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary w-1/3 animate-pulse rounded-full" />
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
             {cards.length === 0 && vcRawOutput && (
               <div className="space-y-4">
                   <div className="flex items-center gap-2 p-3 bg-yellow-500/10 text-yellow-600 rounded-md border border-yellow-500/20">

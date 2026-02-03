@@ -42,6 +42,7 @@ export default function VideoCards() {
 
   // 生成结果
   const [cards, setCards] = useState<EnhancedVideoCard[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [generatedContent, setGeneratedContent] = useState<EnhancedVideoCardsContent | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -90,6 +91,7 @@ export default function VideoCards() {
       if (content.cards) {
         // 新版结构
         setCards(content.cards || []);
+        setCharacters(content.characters || []);
         setRenderStyle(content.params?.render_style || '国漫');
         setCharacterConsistency(content.params?.character_consistency || 'high');
         setDetailLevel(content.params?.detail_level || 'high');
@@ -123,6 +125,21 @@ export default function VideoCards() {
     }
     setSourceStoryboardId(storyboardId);
     loadSourceStoryboard(storyboardId);
+  };
+
+  // 角色卡管理
+  const updateCharacter = (index: number, field: keyof Character, value: string) => {
+    const updated = [...characters];
+    updated[index] = { ...updated[index], [field]: value };
+    setCharacters(updated);
+  };
+
+  const deleteCharacter = (index: number) => {
+    setCharacters(characters.filter((_, i) => i !== index));
+  };
+
+  const addCharacter = () => {
+    setCharacters([...characters, { name: '新角色', traits: '', relation: '' }]);
   };
 
   // 镜头卡管理
@@ -262,12 +279,15 @@ export default function VideoCards() {
             temperature
           },
           cards: response.data.cards,
+          characters: response.data.characters,
           updated_from: {
             source_video_cards_id: null
           }
         };
 
         setCards(response.data.cards);
+        setCharacters(response.data.characters || []);
+        // 不依赖 setCharacters，这里仅落地内容
         setGeneratedContent(content);
         renumberCards();
         toast({ title: '生成成功！' });
@@ -300,7 +320,8 @@ export default function VideoCards() {
     const updatedContent: EnhancedVideoCardsContent = generatedContent
       ? {
           ...generatedContent,
-          cards
+          cards,
+          characters
         }
       : {
           lang: sourceStoryboard?.lang || (language as 'zh' | 'en'),
@@ -318,6 +339,7 @@ export default function VideoCards() {
             temperature
           },
           cards,
+          characters,
           updated_from: {
             source_video_cards_id: null
           }
@@ -360,7 +382,8 @@ export default function VideoCards() {
     const updatedContent: EnhancedVideoCardsContent = generatedContent
       ? {
           ...generatedContent,
-          cards
+          cards,
+          characters
         }
       : {
           lang: sourceStoryboard?.lang || (language as 'zh' | 'en'),
@@ -378,6 +401,7 @@ export default function VideoCards() {
             temperature
           },
           cards,
+          characters,
           updated_from: {
             source_video_cards_id: null
           }
@@ -490,6 +514,85 @@ export default function VideoCards() {
       {/* 镜头卡列表编辑器 */}
       {cards.length > 0 && (
         <div>
+          {/* 角色卡列表 */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-3">
+              <Label className="font-semibold text-foreground text-lg">角色卡列表</Label>
+              <Button onClick={addCharacter} size="sm" variant="outline" className="border-2 border-border hover:border-primary/50">
+                <Plus className="h-4 w-4 mr-1" />
+                添加角色
+              </Button>
+            </div>
+
+            {characters.length === 0 ? (
+              <div className="text-center p-4 bg-muted/30 rounded-lg border-2 border-dashed border-border/50 text-muted-foreground">
+                暂无角色信息，请手动添加或等待生成
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {characters.map((char, index) => (
+                  <Card key={index} className="p-4 bg-primary/5 border-2 border-primary/20 relative group">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                      onClick={() => deleteCharacter(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">角色名</Label>
+                        <Input
+                          value={char.name}
+                          onChange={(e) => updateCharacter(index, 'name', e.target.value)}
+                          className="bg-background/80 border-primary/30 h-8 font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">性格特征</Label>
+                        <Textarea
+                          value={char.traits}
+                          onChange={(e) => updateCharacter(index, 'traits', e.target.value)}
+                          className="bg-background/80 border-primary/30 min-h-[3rem] text-sm resize-none"
+                          rows={2}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">身份/关系</Label>
+                        <Input
+                          value={char.relation}
+                          onChange={(e) => updateCharacter(index, 'relation', e.target.value)}
+                          className="bg-background/80 border-primary/30 h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">外貌特征</Label>
+                        <Textarea
+                          value={char.appearance || ''}
+                          onChange={(e) => updateCharacter(index, 'appearance', e.target.value)}
+                          className="bg-background/80 border-primary/30 min-h-[3rem] text-sm resize-none"
+                          rows={2}
+                          placeholder="例如：高大魁梧，黑色短发..."
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">经历/背景</Label>
+                        <Textarea
+                          value={char.experience || ''}
+                          onChange={(e) => updateCharacter(index, 'experience', e.target.value)}
+                          className="bg-background/80 border-primary/30 min-h-[3rem] text-sm resize-none"
+                          rows={2}
+                          placeholder="例如：退役军人，曾参加过..."
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-between items-center mb-3">
             <Label className="font-semibold text-foreground text-lg">镜头卡列表</Label>
             <div className="flex gap-2">

@@ -9,12 +9,14 @@ interface ToolCardProps {
   description: string;
   icon: LucideIcon;
   path: string;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export default function ToolCard({ title, description, icon: Icon, path }: ToolCardProps) {
+export default function ToolCard({ title, description, icon: Icon, path, className, style }: ToolCardProps) {
   return (
-    <Link to={path}>
-      <Card className="bg-card border-border card-hover cursor-pointer group">
+    <Link to={path} className={className} style={style}>
+      <Card className="bg-card border-border card-hover cursor-pointer group h-full">
         <CardHeader>
           <div className="flex items-center space-x-4">
             <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
