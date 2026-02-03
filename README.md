@@ -1,102 +1,82 @@
-# 欢迎使用你的秒哒应用代码包
-秒哒应用链接
-    URL:https://www.miaoda.cn/projects/app-9151dl38xou9
+# AI Comic - AI 漫画与视频创作平台
 
-## 介绍
+AI Comic 是一个功能强大的 AI 辅助创作工具，旨在帮助创作者通过人工智能技术快速生成剧本、分镜、角色设定以及最终的漫画或视频内容。本项目基于 React + Vite 构建，集成了多种主流大模型 API。
 
-项目介绍
+## 🌟 核心功能
 
-## 目录结构
+### 1. 剧本生成 (Script Generator)
+*   支持多种剧本风格（短视频、漫画、电影等）。
+*   基于 LLM（大语言模型）自动生成包含场景、对白、画面的详细剧本。
+*   支持流式输出，实时查看生成进度。
 
-```
-├── README.md # 说明文档
-├── components.json # 组件库配置
-├── index.html # 入口文件
-├── package.json # 包管理
-├── postcss.config.js # postcss 配置
-├── public # 静态资源目录
-│   ├── favicon.png # 图标
-│   └── images # 图片资源
-├── src # 源码目录
-│   ├── App.tsx # 入口文件
-│   ├── components # 组件目录
-│   ├── contexts # 上下文目录
-│   ├── db # 数据库配置目录
-│   ├── hooks # 通用钩子函数目录
-│   ├── index.css # 全局样式
-│   ├── layout # 布局目录
-│   ├── lib # 工具库目录
-│   ├── main.tsx # 入口文件
-│   ├── routes.tsx # 路由配置
-│   ├── pages # 页面目录
-│   ├── services  # 数据库交互目录
-│   ├── types   # 类型定义目录
-├── tsconfig.app.json  # ts 前端配置文件
-├── tsconfig.json # ts 配置文件
-├── tsconfig.node.json # ts node端配置文件
-└── vite.config.ts # vite 配置文件
-```
+### 2. 分镜生成 (Storyboard Generator)
+*   将剧本自动转换为可视化的分镜列表。
+*   支持对每个分镜的画面描述进行微调。
+*   为后续的绘图环节提供精确的构图参考。
 
-## 技术栈
+### 3. 角色一致性 (Video Cards / Character Consistency)
+*   **角色卡系统**：提取剧本中的角色特征，生成标准化的角色设定图。
+*   **一致性保持**：在生成不同分镜时，引用角色卡以确保人物外貌的一致性。
+*   支持自定义角色的外貌、性格和关系。
 
-Vite、TypeScript、React、Supabase
+### 4. 漫画/视频编辑 (Editing / Comic Mode)
+*   **漫画模式**：提供多种分格布局（四格、条漫等），自动填充生成的图像。
+*   **图像生成**：集成 DALL-E 3、Flux、Google Imagen、阿里云通义万相 (Qwen-Image) 等多种绘图模型。
+*   支持对单张图片进行重绘和修饰。
 
-## 本地开发
+### 5. 多模型支持 (Multi-Provider AI)
+*   **文本模型**：OpenAI (GPT-4o), Google (Gemini 1.5 Pro/Flash), 阿里云 (Qwen-Turbo/Max) 等。
+*   **图像模型**：Flux.1, Stable Diffusion XL, DALL-E 3, 通义万相 (Qwen-Image) 等。
+*   **灵活配置**：在后台管理页面 (Admin) 自由切换和配置不同的 API 提供商。
 
-### 如何在本地编辑代码？
+## 🛠️ 技术栈
 
-您可以选择 [VSCode](https://code.visualstudio.com/Download) 或者您常用的任何 IDE 编辑器，唯一的要求是安装 Node.js 和 npm.
+*   **前端框架**: React 18, TypeScript
+*   **构建工具**: Vite
+*   **UI 组件库**: Radix UI, TailwindCSS, Shadcn/UI
+*   **状态管理**: React Context / Hooks
+*   **路由**: React Router
+*   **国际化**: i18n (支持中英双语)
+
+## 🚀 快速开始
 
 ### 环境要求
+*   Node.js (建议 v18 或更高版本)
+*   npm 或 yarn/pnpm
 
-```
-# Node.js ≥ 20
-# npm ≥ 10
-例如：
-# node -v   # v20.18.3
-# npm -v    # 10.8.2
-```
+### 安装步骤
 
-具体安装步骤如下：
+1.  **克隆项目**
+    ```bash
+    git clone https://github.com/YuxuanSun123/AI-COMIC.git
+    cd AI-COMIC
+    ```
 
-### 在 Windows 上安装 Node.js
+2.  **安装依赖**
+    ```bash
+    npm install
+    ```
 
-```
-# Step 1: 访问Node.js官网：https://nodejs.org/，点击下载后，会根据你的系统自动选择合适的版本（32位或64位）。
-# Step 2: 运行安装程序：下载完成后，双击运行安装程序。
-# Step 3: 完成安装：按照安装向导完成安装过程。
-# Step 4: 验证安装：在命令提示符（cmd）或IDE终端（terminal）中输入 node -v 和 npm -v 来检查 Node.js 和 npm 是否正确安装。
-```
+3.  **启动开发服务器**
+    ```bash
+    npm run dev
+    ```
+    启动后访问 `http://localhost:5173` (或终端显示的端口)。
 
-### 在 macOS 上安装 Node.js
+## ⚙️ 配置指南
 
-```
-# Step 1: 使用Homebrew安装（推荐方法）：打开终端。输入命令brew install node并回车。如果尚未安装Homebrew，需要先安装Homebrew，
-可以通过在终端中运行如下命令来安装：
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-或者使用官网安装程序：访问Node.js官网。下载macOS的.pkg安装包。打开下载的.pkg文件，按照提示完成安装。
-# Step 2: 验证安装：在命令提示符（cmd）或IDE终端（terminal）中输入 node -v 和 npm -v 来检查 Node.js 和 npm 是否正确安装。
-```
+项目启动后，请点击右上角的 **设置 (Settings)** 图标或访问 `/admin` 页面进行配置：
 
-### 安装完后按照如下步骤操作：
+1.  **API 密钥设置**：
+    *   支持 OpenAI, Google Gemini, SiliconFlow (硅基流动), 阿里云 (DashScope) 等。
+    *   输入相应的 API Key 并启用对应的提供商。
+2.  **模型路由**：
+    *   可以为不同的任务（如"剧本生成"、"图像生成"）指定不同的默认模型。
+    *   例如：使用 DeepSeek 生成剧本，使用 Flux.1 生成图像。
 
-```
-# Step 1: 下载代码包
-# Step 2: 解压代码包
-# Step 3: 用IDE打开代码包，进入代码目录
-# Step 4: IDE终端输入命令行，安装依赖：npm i
-# Step 5: IDE终端输入命令行，启动开发服务器：npm run dev -- --host 127.0.0.1
-```
+## 📝 许可证
 
-### 如何开发后端服务？
+本项目采用 MIT 许可证。
 
-配置环境变量，安装相关依赖
-如需使用数据库，请使用 supabase 官方版本或自行部署开源版本的 Supabase
-
-### 如何配置应用中的三方 API？
-
-具体三方 API 调用方法，请参考帮助文档：[源码导出](https://cloud.baidu.com/doc/MIAODA/s/Xmewgmsq7)，了解更多详细内容。
-
-## 了解更多
-
-您也可以查看帮助文档：[源码导出](https://cloud.baidu.com/doc/MIAODA/s/Xmewgmsq7)，了解更多详细内容。
+---
+*Created with ❤️ by AI Comic Team*
