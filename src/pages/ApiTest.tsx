@@ -10,6 +10,7 @@ const ApiTest = () => {
   const [apiKey, setApiKey] = useState('AIzaSyC7TS8aHjN_WbYRWLj8tsg2mRvhBC-IWuY');
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const addLog = (message: string) => {
     setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev]);
@@ -234,25 +235,49 @@ const ApiTest = () => {
     }
   };
 
+  const testGenerateImage = async () => {
+    setLoading(true);
+    addLog('--- Starting generateImage() (Provider Integration) Test ---');
+    try {
+      addLog('Calling generateImage("A cute anime character")...');
+      const result = await generateImage("A cute anime character");
+      
+      addLog(`Result OK: ${result.ok}`);
+      if (result.ok && result.data) {
+        addLog(`Image URL: ${result.data.image_url}`);
+        if (result.data.image_url) {
+             setPreviewImage(result.data.image_url);
+             setLogs(prev => [`[Preview Updated]`, ...prev]);
+        }
+      } else {
+        addLog(`Error: ${JSON.stringify(result.error)}`);
+      }
+    } catch (error: any) {
+      addLog(`Exception: ${error.message}`);
+    } finally {
+      setLoading(false);
+      addLog('--- End Test ---');
+    }
+  };
+
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-8 space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Google Gemini / Vertex AI API Diagnostic</CardTitle>
+          <CardTitle>API Compatibility Test</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>API Key</Label>
-            <Input 
-              value={apiKey} 
-              onChange={(e) => setApiKey(e.target.value)} 
-              placeholder="AIza..." 
-            />
+            <Label>Google API Key (for direct raw tests)</Label>
+            <Input value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={testGemini2FlashExp} disabled={loading}>
-              Test Gemini 2.0 Flash Exp (Image Modality)
+          
+          <div className="flex flex-wrap gap-4">
+            <Button onClick={testGenerateImage} disabled={loading} variant="default">
+              Test Configured Image Provider (e.g. Aliyun)
+            </Button>
+            <Button onClick={testGemini2FlashExp} disabled={loading} variant="secondary">
+              Test Gemini 2.0 Flash Exp (Raw)
             </Button>
             <Button onClick={testGemini2Flash} disabled={loading}>
               Test Gemini 2.0 Flash (Text/Image)
@@ -263,6 +288,24 @@ const ApiTest = () => {
             <Button onClick={testSDKGenerateImage} disabled={loading} variant="secondary">
               Test SDK (with Fallback)
             </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Preview</Label>
+            {previewImage ? (
+              <div className="border rounded p-2 bg-muted/20">
+                <img 
+                  src={previewImage} 
+                  alt="Test Result" 
+                  className="max-w-md h-auto rounded shadow" 
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            ) : (
+              <div className="border rounded p-8 text-center text-muted-foreground bg-muted/10">
+                No image generated yet
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

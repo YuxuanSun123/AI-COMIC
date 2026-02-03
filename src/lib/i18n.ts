@@ -207,6 +207,7 @@ export interface I18nTexts {
   multiFormatExportDesc: string;
   readyToStart: string;
   joinCommunity: string;
+  startFreeTrial: string;
 }
 
 export const i18n: Record<Language, I18nTexts> = {
@@ -365,6 +366,7 @@ export const i18n: Record<Language, I18nTexts> = {
 
     // External Tools Page
     visitWebsite: '访问官网',
+    externalToolsPageIntro: '探索最好的AI工具',
     imageGeneration: 'AI 绘画 (Image Generation)',
     imageGenerationDesc: '用于生成角色立绘、场景背景、道具资产等静态图像',
     videoGeneration: 'AI 视频 (Video Generation)',
@@ -400,7 +402,8 @@ export const i18n: Record<Language, I18nTexts> = {
     multiFormatExport: '多格式导出',
     multiFormatExportDesc: '支持导出 PDF、Excel 等多种格式，方便团队协作',
     readyToStart: '准备好开始创作了吗？',
-    joinCommunity: '加入我们的创作者社区，探索 AI 漫剧创作的无限可能。'
+    joinCommunity: '加入我们的创作者社区，探索 AI 漫剧创作的无限可能。',
+    startFreeTrial: '开始免费试用'
   },
   
   en: {
@@ -420,6 +423,8 @@ export const i18n: Record<Language, I18nTexts> = {
     videoCards: 'Video Cards',
     editPlan: 'Edit Plan',
     editing: 'Editing',
+    animeGenerator: 'Anime Generator',
+    comicGenerator: 'Comic Generator',
     links: 'Friend Links',
     pricing: 'Pricing',
     about: 'About Us',
@@ -427,8 +432,8 @@ export const i18n: Record<Language, I18nTexts> = {
     privacy: 'Privacy Policy',
     terms: 'Terms of Service',
     disclaimer: 'Disclaimer',
-    icp: 'ICP License No. XXXXXXXX',
-    security: 'Public Security Filing No. XXXXXXXX',
+    icp: 'ICP License',
+    security: 'Security',
     admin: 'Admin',
     
     login: 'Login',
@@ -467,7 +472,7 @@ export const i18n: Record<Language, I18nTexts> = {
     updatedAt: 'Updated At',
     openWork: 'Open',
     deleteWork: 'Delete',
-    deleteConfirm: 'Confirm Delete',
+    deleteConfirm: 'Delete Confirm',
     deleteWarning: 'Are you sure you want to delete this work? This action cannot be undone.',
     
     newsTitle: 'News Title',
@@ -480,7 +485,7 @@ export const i18n: Record<Language, I18nTexts> = {
     
     linkName: 'Link Name',
     linkUrl: 'Link URL',
-    linkDesc: 'Link Description',
+    linkDesc: 'Description',
     linkTags: 'Tags',
     
     toolsIntro: 'Select a tool to start creating',
@@ -493,7 +498,7 @@ export const i18n: Record<Language, I18nTexts> = {
     parameters: 'Parameters',
     length: 'Length',
     pace: 'Pace',
-    temperature: 'Temperature',
+    temperature: 'Creativity',
     generateScript: 'Generate Script',
     generateStoryboard: 'Generate Storyboard',
     scriptInput: 'Script Input',
@@ -556,6 +561,7 @@ export const i18n: Record<Language, I18nTexts> = {
 
     // External Tools Page
     visitWebsite: 'Visit Website',
+    externalToolsPageIntro: 'Explore best AI tools',
     imageGeneration: 'AI Image Generation',
     imageGenerationDesc: 'Generate character art, scene backgrounds, and assets',
     videoGeneration: 'AI Video Generation',

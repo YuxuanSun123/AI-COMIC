@@ -15,4 +15,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/dashscope-api': {
+        target: 'https://dashscope.aliyuncs.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/dashscope-api/, ''),
+        headers: {
+          'Origin': 'https://dashscope.aliyuncs.com',
+          'Referer': 'https://dashscope.aliyuncs.com',
+        }
+      }
+    }
+  }
 });

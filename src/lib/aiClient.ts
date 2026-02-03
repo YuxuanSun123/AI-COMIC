@@ -1257,9 +1257,9 @@ async function callProvider(
             },
             parameters: {
                 size: size,
-                n: 1,
-                prompt_extend: true,
-                watermark: false
+                n: 1
+                // prompt_extend: true,
+                // watermark: false
             }
         };
 
@@ -1281,7 +1281,13 @@ async function callProvider(
 
   // 确保base_url没有尾部斜杠
   const baseUrl = provider.base_url.replace(/\/+$/, '');
-  const url = `${baseUrl}${endpoint}`;
+  let url = `${baseUrl}${endpoint}`;
+
+  // CORS Proxy for DashScope (Aliyun) in Browser Environment
+  if (typeof window !== 'undefined' && url.includes('dashscope.aliyuncs.com')) {
+      url = url.replace('https://dashscope.aliyuncs.com', '/dashscope-api');
+      console.log(`[AI] Using Proxy URL: ${url}`);
+  }
 
   console.log(`[AI] Calling provider: ${provider.name} (${url})`);
 
@@ -1642,14 +1648,23 @@ async function callProvider(
     } else if (provider.type === 'image') {
       // Check for Aliyun DashScope response structure
       // { output: { results: [ { url: ... } ] } }
-      const aliyunUrl = (result as any).output?.results?.[0]?.url;
+      // Or { output: { choices: [ { message: { content: [ { image: ... } ] } } ] } }
+      const aliyunUrl = (result as any).output?.results?.[0]?.url || 
+                        (result as any).output?.choices?.[0]?.message?.content?.[0]?.image;
+      
       if (aliyunUrl) {
            return { ok: true, data: { image_url: aliyunUrl } };
       }
 
+      // Debugging: If output exists but URL extraction failed
+      if ((result as any).output) {
+           console.warn('[AI] Aliyun response missing URL. Output:', JSON.stringify((result as any).output));
+      }
+
       const imageUrl = result.data?.[0]?.url;
       if (!imageUrl) {
-        throw new Error('Provider响应格式错误 (No URL found in data[0].url or output.results[0].url)');
+        console.error('[AI] Provider Response Structure Mismatch:', JSON.stringify(result, null, 2));
+        throw new Error(`Provider响应格式错误 (No URL found). Response: ${JSON.stringify(result).substring(0, 200)}...`);
       }
       return { ok: true, data: { image_url: imageUrl } };
     }
@@ -1660,8 +1675,12 @@ async function callProvider(
     
     // Auto-fallback for image generation if the configured provider fails
     if (taskType === 'image_generation') {
-        console.warn('⚠️ Automatically switching to Pollinations fallback due to provider failure.');
-        return fallbackToLegacyMethod(taskType, payload);
+        // console.warn('⚠️ Automatically switching to Pollinations fallback due to provider failure.');
+        // return fallbackToLegacyMethod(taskType, payload);
+        
+        // 暂时禁用自动回退，以便用户能看到真实的报错信息 (如 403 Forbidden 或 CORS 错误)
+        console.warn('⚠️ Image Generation failed. Fallback is disabled to debug error.');
+        throw error;
     }
 
     throw error;
@@ -1909,7 +1928,13 @@ export async function testProvider(provider: ApiProvider): Promise<ProviderTestR
         }
     }
 
-    const url = `${baseUrl}${endpoint}`;
+    let url = `${baseUrl}${endpoint}`;
+
+    // CORS Proxy for DashScope (Aliyun) in Browser Environment
+    if (typeof window !== 'undefined' && url.includes('dashscope.aliyuncs.com')) {
+        url = url.replace('https://dashscope.aliyuncs.com', '/dashscope-api');
+        console.log(`[AI] Using Proxy URL for Test: ${url}`);
+    }
 
     const response = await fetch(url, {
       method: 'POST',

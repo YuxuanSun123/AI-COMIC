@@ -341,7 +341,7 @@ export default function Editing() {
     setGeneratingCharacters(true);
     setGenerationLogs([]); // Clear previous logs
     addLog('开始生成角色样貌...');
-    toast({ title: '正在调用 Nano Banana Pro 生成角色样貌...' });
+    toast({ title: '正在生成角色样貌...' });
 
     try {
       // Create a deep copy to ensure state updates trigger re-renders properly
@@ -356,10 +356,16 @@ export default function Editing() {
             
             // Update state incrementally to show progress
             setCharacters([...updatedCharacters]); 
-            addLog(`角色 ${updatedCharacters[i].name} 生成成功`);
+            addLog(`角色 ${updatedCharacters[i].name} 生成成功. URL: ${imageUrl.substring(0, 30)}...`);
+
           } catch (err) {
             console.error(err);
             addLog(`角色 ${updatedCharacters[i].name} 生成失败: ${err instanceof Error ? err.message : String(err)}`);
+          }
+
+          // Add a delay to avoid rate limiting (e.g., Aliyun QPS limit), even if failed
+          if (i < updatedCharacters.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 5000)); // Increased to 5s
           }
         } else {
             addLog(`角色 ${updatedCharacters[i].name} 已存在，跳过`);
@@ -914,7 +920,18 @@ export default function Editing() {
                       <div key={idx} className="relative group">
                         <div className="aspect-[2/3] bg-muted rounded-md overflow-hidden border border-border">
                           {char.image_url ? (
-                            <img src={char.image_url} alt={char.name} className="w-full h-full object-cover" />
+                            <img 
+                              src={char.image_url} 
+                              alt={char.name} 
+                              className="w-full h-full object-cover" 
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-red-500 p-2 text-center bg-gray-100 dark:bg-gray-800">加载失败</div>';
+                                console.error(`Image load failed for ${char.name}: ${char.image_url}`);
+                              }}
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground p-2 text-center bg-gray-100 dark:bg-gray-800">
                               待生成
@@ -986,7 +1003,17 @@ export default function Editing() {
                     <div className="group relative h-full overflow-hidden rounded-xl border-2 border-primary/20 bg-card text-card-foreground shadow-sm transition-all hover:shadow-md mx-auto max-w-4xl flex flex-col md:flex-row">
                       {char.image_url && (
                         <div className="w-full md:w-1/3 h-64 md:h-auto relative bg-muted border-r border-border/50">
-                           <img src={char.image_url} alt={char.name} className="absolute inset-0 w-full h-full object-cover" />
+                           <img 
+                             src={char.image_url} 
+                             alt={char.name} 
+                             className="absolute inset-0 w-full h-full object-cover" 
+                             referrerPolicy="no-referrer"
+                             onError={(e) => {
+                               const target = e.target as HTMLImageElement;
+                               target.style.display = 'none';
+                               console.error(`Carousel Image load failed for ${char.name}: ${char.image_url}`);
+                             }}
+                           />
                         </div>
                       )}
                       <div className={`relative p-8 space-y-6 ${char.image_url ? 'w-full md:w-2/3' : 'w-full'}`}>

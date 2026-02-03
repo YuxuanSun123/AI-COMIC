@@ -58,7 +58,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
     // 调试阶段：始终显示后台管理入口，方便开发调试
     // TODO: 生产环境需要恢复登录验证（只有登录用户可见）
-    // items.push({ path: '/admin', label: t.admin || '后台管理' });
+    items.push({ path: '/admin', label: (t.admin || '后台管理') + ' (Dev)' });
     
     /*
     // 生产环境代码：添加后台管理入口（仅登录用户可见）

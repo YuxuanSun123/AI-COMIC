@@ -219,14 +219,17 @@ export default function Admin() {
         currentRouting = defaultRoutingStruct;
     }
     
-    // Apply Routing Logic (User Request: DeepSeek for Text, Google for Image)
+    // Apply Routing Logic
     let routingUpdated = false;
 
     // 1. Configure DeepSeek for Text Tasks (Script, Storyboard, Video Cards, Edit Plan)
     const textTasks: TaskType[] = ['script', 'storyboard', 'video_cards', 'edit_plan'];
     textTasks.forEach(task => {
         if (currentRouting && currentRouting[task]) {
-            if (currentRouting[task].provider_id !== deepseekProviderId) {
+            // Only set if not configured or if we want to force DeepSeek as default for text
+            // Here we only set if provider is empty to respect user choice, 
+            // OR if it was using the old default OpenAI but we want to recommend DeepSeek
+            if (!currentRouting[task].provider_id || currentRouting[task].provider_id === 'provider_openai') {
                 currentRouting[task].enabled = true;
                 currentRouting[task].provider_id = deepseekProviderId;
                 currentRouting[task].model = 'deepseek-chat';
@@ -235,14 +238,19 @@ export default function Admin() {
         }
     });
 
-    // 2. Configure Google for Image Tasks (Image Storyboard, Image Shot, Image Generation)
+    // 2. Configure Image Tasks (Image Storyboard, Image Shot, Image Generation)
+    // Priority: Aliyun (User Request) > Google (Fallback) > SiliconFlow
     const imageTasks: TaskType[] = ['image_storyboard', 'image_shot', 'image_generation'];
+    const preferredImageProviderId = aliyunProviderId; // Prioritize Aliyun Qwen-Image
+    
     imageTasks.forEach(task => {
         if (currentRouting && currentRouting[task]) {
-             if (currentRouting[task].provider_id !== googleProviderId) {
+             // If not configured, or if we want to switch to the new preferred provider (Aliyun)
+             // We'll switch to Aliyun if it's currently Google or empty, to ensure the user's new key is used.
+             if (!currentRouting[task].provider_id || currentRouting[task].provider_id === googleProviderId) {
                 currentRouting[task].enabled = true;
-                currentRouting[task].provider_id = googleProviderId;
-                currentRouting[task].model = 'gemini-2.0-flash'; // Use standard Gemini 2.0 Flash
+                currentRouting[task].provider_id = preferredImageProviderId;
+                currentRouting[task].model = 'qwen-image-max';
                 routingUpdated = true;
              }
         }
@@ -250,7 +258,7 @@ export default function Admin() {
 
     if (routingUpdated) {
         localStorage.setItem('api_routing', JSON.stringify(currentRouting));
-        setTimeout(() => toast({ title: '系统配置更新', description: 'DeepSeek(文本) 与 Google(绘图) 已配置' }), 1000);
+        setTimeout(() => toast({ title: '系统配置更新', description: '已自动配置通义万相(Qwen)为绘图引擎' }), 1000);
     }
 
     setRouting(currentRouting);
