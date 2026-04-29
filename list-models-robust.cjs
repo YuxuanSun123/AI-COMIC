@@ -1,6 +1,11 @@
 const https = require('https');
 
-const API_KEY = 'AIzaSyC7TS8aHjN_WbYRWLj8tsg2mRvhBC-IWuY';
+const API_KEY = process.env.GOOGLE_API_KEY;
+
+if (!API_KEY) {
+    console.error('Missing GOOGLE_API_KEY environment variable.');
+    process.exit(1);
+}
 
 function listModels(version) {
     const options = {

@@ -64,17 +64,17 @@ export default function Admin() {
 
     // Auto-inject Google Vertex AI (Image Generation)
     const googleProviderId = 'provider_google_vertex_ai';
-    const googleApiKey = 'AQ.Ab8RN6KQHMc-n2XNz2qj2EmzeIctmBikq6IovUPEM7h7vFLg9Q';
-    // Check if we already have this provider (by ID or Key)
-    const existingGoogleIndex = currentProviders.findIndex(p => p.id === googleProviderId || p.api_key === googleApiKey);
+    const googleApiKey = '';
+    // Check if we already have this provider.
+    const existingGoogleIndex = currentProviders.findIndex(p => p.id === googleProviderId);
     
     const googleProviderConfig: ApiProvider = {
         id: googleProviderId,
         name: 'Google Vertex AI (Image)',
         type: 'image',
-        enabled: true,
+        enabled: Boolean(googleApiKey),
         base_url: 'https://generativelanguage.googleapis.com/v1beta',
-        api_key: 'AIzaSyC7TS8aHjN_WbYRWLj8tsg2mRvhBC-IWuY',
+        api_key: googleApiKey,
         default_model: 'gemini-2.0-flash', // For AI Studio API Key, use Gemini 2.0 Native Image Generation
         created_ms: Date.now(),
         updated_ms: Date.now()
@@ -93,14 +93,14 @@ export default function Admin() {
 
     // Auto-inject DeepSeek (LLM)
     const deepseekProviderId = 'provider_deepseek';
-    const deepseekApiKey = 'sk-ec1f6aba72ab4a359f5fb32d24ccc562';
-    const existingDeepseekIndex = currentProviders.findIndex(p => p.id === deepseekProviderId || p.api_key === deepseekApiKey);
+    const deepseekApiKey = '';
+    const existingDeepseekIndex = currentProviders.findIndex(p => p.id === deepseekProviderId);
 
     const deepseekProviderConfig: ApiProvider = {
         id: deepseekProviderId,
         name: 'DeepSeek',
         type: 'llm',
-        enabled: true,
+        enabled: Boolean(deepseekApiKey),
         base_url: 'https://api.deepseek.com',
         api_key: deepseekApiKey,
         default_model: 'deepseek-chat',
@@ -157,14 +157,14 @@ export default function Admin() {
 
     // Auto-inject Aliyun (Tongyi Wanxiang/Qwen) Template
     const aliyunProviderId = 'provider_aliyun_wanx';
-    const aliyunApiKey = 'sk-49d45893cee643f39d295a96a4386aca'; // Pre-filled from user request
+    const aliyunApiKey = '';
     const existingAliyunIndex = currentProviders.findIndex(p => p.id === aliyunProviderId || p.base_url.includes('dashscope'));
 
     const aliyunProviderConfig: ApiProvider = {
         id: aliyunProviderId,
         name: '阿里云 (通义万相 - Qwen)',
         type: 'image',
-        enabled: true, // Enable by default since we have a key
+        enabled: Boolean(aliyunApiKey),
         base_url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
         api_key: aliyunApiKey,
         default_model: 'qwen-image-max',

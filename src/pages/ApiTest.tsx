@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { generateImage } from '@/lib/aiClient';
 
 const ApiTest = () => {
-  const [apiKey, setApiKey] = useState('AIzaSyC7TS8aHjN_WbYRWLj8tsg2mRvhBC-IWuY');
+  const [apiKey, setApiKey] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);

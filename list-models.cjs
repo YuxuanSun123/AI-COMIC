@@ -1,6 +1,11 @@
 
 const { fetch } = require('undici');
-const apiKey = 'AIzaSyC7TS8aHjN_WbYRWLj8tsg2mRvhBC-IWuY';
+const apiKey = process.env.GOOGLE_API_KEY;
+
+if (!apiKey) {
+  console.error('Missing GOOGLE_API_KEY environment variable.');
+  process.exit(1);
+}
 
 async function listModels(version) {
   const url = `https://generativelanguage.googleapis.com/${version}/models?key=${apiKey}`;
